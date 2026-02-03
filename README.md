@@ -28,6 +28,7 @@ O sistema segue uma arquitetura em camadas, separando claramente as responsabili
 - **Interface**: API desenvolvida com FastAPI
 
 As camadas de domínio não dependem das camadas superiores.
+
 ---
 
 ## 📋 Requisitos Funcionais (RF)
