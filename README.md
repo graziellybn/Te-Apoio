@@ -7,7 +7,7 @@ Este é um projeto desenvolvido por alunos do curso de Engenharia de Software da
 ## 👥 Equipe
 
 - Grazielly Bibiano do Nascimento — GitHub: graziellybn  
-- Pedro Kauan Cardoso da Silva — GitHub: devpkauan  
+- Pedro Kauan Cardoso da Silva — GitHub: DevPKauan01  
 - Ramona Vitória Clemente Cardoso — GitHub: ramona-dev  
 
 ---
@@ -162,14 +162,18 @@ teapoio/
 │
 ├── domain/
 │   ├── entities/
+│   │   ├── avaliacao.py
 │   │   ├── crianca.py
 │   │   ├── item_executado.py
 │   │   ├── rotina_executada.py
-│   │   ├── avaliacao.py
 │   │   ├── desvio_rotina.py
 │   │   ├── item_rotina.py
 │   │   ├── perfil_sensorial.py
 │   │   ├── progresso.py
+│   │   ├── recorrencia.py
+│   │   ├── relatorio.py
+│   │   ├── responsavel.py
+│   │   └── rotina_fixa.py
 │   │   ├── recorrencia.py
 │   │   ├── relatorio.py
 │   │   ├── responsavel.py
