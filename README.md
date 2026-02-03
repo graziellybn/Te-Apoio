@@ -7,7 +7,7 @@ Este é um projeto desenvolvido por alunos do curso de Engenharia de Software da
 ## 👥 Equipe
 
 - Grazielly Bibiano do Nascimento — GitHub: graziellybn  
-- Pedro Kauan Cardoso da Silva — GitHub: devpkauan  
+- Pedro Kauan Cardoso da Silva — GitHub: DevPKauan01  
 - Ramona Vitória Clemente Cardoso — GitHub: ramona-dev  
 
 ---
