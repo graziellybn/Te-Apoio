@@ -162,6 +162,7 @@ teapoio/
 │
 ├── domain/
 │   ├── entities/
+│   │   ├── avaliacao.py
 │   │   ├── crianca.py
 │   │   ├── item_executado.py
 │   │   ├── rotina_executada.py
