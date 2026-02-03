@@ -28,6 +28,7 @@ O sistema segue uma arquitetura em camadas, separando claramente as responsabili
 - **Interface**: API desenvolvida com FastAPI
 
 As camadas de domínio não dependem das camadas superiores.
+---
 
 ## 📋 Requisitos Funcionais (RF)
 
@@ -66,6 +67,7 @@ O sistema deve disponibilizar pelo menos três tipos de relatório com enfoques 
 
 - RF12 — Integração dos desvios da rotina nos relatórios
 Os relatórios devem incluir informações sobre a estabilidade da rotina e os desvios identificados no período, quando existirem registros.
+---
 
 ## ⚙️ Requisitos Não Funcionais (RNF)
 
@@ -86,6 +88,7 @@ As regras de negócio devem ser implementadas de forma que possam ser testadas i
 
 - RNF06 — Padrão de código e legibilidade
 O código deve manter padronização de nomes, organização e estilo, priorizando a legibilidade para trabalho em equipe.
+---
 
 ## 📌 Regras de Negócio (RB)
 ### Cadastro e perfil
