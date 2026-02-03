@@ -143,7 +143,7 @@ Se existirem rotinas executadas no período, o relatório deve apresentar sínte
 
 ---
 ## 🗂 Estrutura de Pastas
-
+```
 teapoio/
 │
 ├── application/
@@ -201,4 +201,9 @@ teapoio/
 │   └── test_rotinas.py
 │
 └── README.md
-
+```
+- **application/** → Orquestra lógica de uso, relatórios e serviços.  
+- **domain/** → Contém entidades, eventos e regras de negócio centrais.  
+- **infrastructure/** → Implementações concretas de acesso a dados e API.  
+- **tests/** → Testes unitários e de integração.  
+- **README.md** → Documentação principal do projeto.
