@@ -140,3 +140,72 @@ Cada tipo de relatório deve possuir estratégia própria de geração, podendo 
 
 - RB13 — Relatório deve incluir estabilidade da rotina quando houver dados
 Se existirem rotinas executadas no período, o relatório deve apresentar síntese de desvios (quantidade por tipo e itens mais impactados).
+
+---
+## 🗂 Estrutura de Pastas
+```
+teapoio/
+│
+├── application/
+│   ├── factories/
+│   │   ├── seletor_relatorio.py
+│   │   └── fabrica_eventos.py
+│   ├── reports/
+│   │   ├── gerador_relatorio.py
+│   │   ├── relatorio_clinico.py
+│   │   ├── relatorio_educacional.py
+│   │   └── relatorio_estatistico.py
+│   └── services/
+│       ├── servico_monitoramento.py
+│       ├── servico_relatorios.py
+│       └── servico_rotina.py
+│
+├── domain/
+│   ├── entities/
+│   │   ├── crianca.py
+│   │   ├── item_executado.py
+│   │   ├── rotina_executada.py
+│   │   ├── avaliacao.py
+│   │   ├── desvio_rotina.py
+│   │   ├── item_rotina.py
+│   │   ├── perfil_sensorial.py
+│   │   ├── progresso.py
+│   │   ├── recorrencia.py
+│   │   ├── relatorio.py
+│   │   ├── responsavel.py
+│   │   └── rotina_fixa.py
+│   ├── events/
+│   │   ├── evento.py
+│   │   ├── evento_atividade.py
+│   │   ├── evento_crise.py
+│   │   ├── evento_marco.py
+│   │   └── evento_rotina_alterada.py
+│   └── mixins/
+│       └── exportavel_json.py
+│
+├── infrastructure/
+│   └── interface/
+│       ├── api/
+│       │   ├── eventos.py
+│       │   ├── rotinas.py
+│       │   ├── relatorios.py
+│       │   └── main.py
+│       └── repositories/
+│           ├── evento_repository.py
+│           ├── in_memory_evento_repo.py
+│           ├── in_memory_rotina_repo.py
+│           └── rotina_repository.py
+│
+├── tests/
+│   ├── test_eventos.py
+│   ├── test_mocks.py
+│   ├── test_relatorios.py
+│   └── test_rotinas.py
+│
+└── README.md
+```
+- **application/** → Orquestra lógica de uso, relatórios e serviços.  
+- **domain/** → Contém entidades, eventos e regras de negócio centrais.  
+- **infrastructure/** → Implementações concretas de acesso a dados e API.  
+- **tests/** → Testes unitários e de integração.  
+- **README.md** → Documentação principal do projeto.
