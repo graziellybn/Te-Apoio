@@ -1,6 +1,6 @@
 # TeApoio
 
-Este é um projeto desenvolvido por alunos do curso de Engenharia de Software da Universidade Federal do Cariri (UFCA). Trata-se de um sistema backend desenvolvido em Python com FastAPI, destinado ao monitoramento e à geração de relatórios para o acompanhamento de crianças com Transtorno do Espectro Autista (TEA). O foco do projeto é a aplicação prática dos principais conceitos de Programação Orientada a Objetos (POO), conforme os requisitos da disciplina.
+Este é um projeto desenvolvido por alunos do curso de Engenharia de Software da Universidade Federal do Cariri (UFCA). Trata-se de um sistema backend desenvolvido em Python, destinado ao monitoramento e à geração de relatórios para o acompanhamento de crianças com Transtorno do Espectro Autista (TEA). O foco do projeto é a aplicação prática dos principais conceitos de Programação Orientada a Objetos (POO), conforme os requisitos da disciplina.
 
 ---
 
