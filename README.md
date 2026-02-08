@@ -25,7 +25,6 @@ O sistema segue uma arquitetura em camadas, separando claramente as responsabili
 - **Domínio**: entidades e regras de negócio centrais
 - **Aplicação**: serviços e casos de uso
 - **Infraestrutura**: persistência de dados
-- **Interface**: API desenvolvida com FastAPI
 
 As camadas de domínio não dependem das camadas superiores.
 
@@ -84,10 +83,8 @@ A API deve possuir endpoints consistentes e documentação automática (ex.: Ope
 - RNF04 — Manutenibilidade
 O sistema deve ser organizado de forma a facilitar evolução e manutenção, evitando duplicação de lógica e concentrando regras de negócio em componentes apropriados.
 
-- RNF05 — Testabilidade
-As regras de negócio devem ser implementadas de forma que possam ser testadas independentemente da camada de API.
 
-- RNF06 — Padrão de código e legibilidade
+- RNF05 — Padrão de código e legibilidade
 O código deve manter padronização de nomes, organização e estilo, priorizando a legibilidade para trabalho em equipe.
 ---
 
@@ -210,6 +207,6 @@ teapoio/
 ```
 - **application/** → Orquestra lógica de uso, relatórios e serviços.  
 - **domain/** → Contém entidades, eventos e regras de negócio centrais.  
-- **infrastructure/** → Implementações concretas de acesso a dados e API.  
+- **infrastructure/** → Implementações concretas de acesso a dados.  
 - **tests/** → Testes unitários e de integração.  
 - **README.md** → Documentação principal do projeto.
