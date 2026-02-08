@@ -163,10 +163,6 @@ teapoio/
 │       └── eventos.py
 │
 ├── infrastructure/
-│   │   ├── conquista.py
-│   │   ├── eventos.py
-│   │   ├── relatorios.py
-│   │   ├── rotinas.py
 │   │   └── main.py
 │   │
 │   ├── persistence/
