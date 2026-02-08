@@ -17,7 +17,7 @@ def main():
     print("Responsável:", resp.nome, "-", resp.tipo_responsavel)
     print("Crianças:")
     for c in resp.listar_criancas():
-        print(f"Nome: {c.nome}\nIdade: {c.idade}\nNível de suporte: {c.nivel_suporte}\n")
+        print(f"Nome: {c.nome}\n, Idade: {c.idade}, Nível de suporte: {c.nivel_suporte}")
 
 if __name__ == "__main__":
     main()
