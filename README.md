@@ -77,14 +77,11 @@ O sistema deve garantir que registros de eventos, rotinas executadas e desvios s
 - RNF02 — Validação e tratamento de erros
 O sistema deve validar entradas e retornar erros de forma explícita e compreensível (ex.: dados inválidos, período incorreto, recurso inexistente).
 
-- RNF03 — Usabilidade via API
-A API deve possuir endpoints consistentes e documentação automática (ex.: OpenAPI/Swagger), permitindo testar o sistema sem interface gráfica.
-
-- RNF04 — Manutenibilidade
+- RNF03 — Manutenibilidade
 O sistema deve ser organizado de forma a facilitar evolução e manutenção, evitando duplicação de lógica e concentrando regras de negócio em componentes apropriados.
 
 
-- RNF05 — Padrão de código e legibilidade
+- RNF04 — Padrão de código e legibilidade
 O código deve manter padronização de nomes, organização e estilo, priorizando a legibilidade para trabalho em equipe.
 ---
 
@@ -144,62 +141,43 @@ Se existirem rotinas executadas no período, o relatório deve apresentar sínte
 teapoio/
 │
 ├── application/
-│   ├── factories/
-│   │   ├── seletor_relatorio.py
-│   │   └── fabrica_eventos.py
-│   ├── reports/
-│   │   ├── gerador_relatorio.py
-│   │   ├── relatorio_clinico.py
-│   │   ├── relatorio_educacional.py
-│   │   └── relatorio_estatistico.py
 │   └── services/
+│       ├── servico_conquistas.py
 │       ├── servico_monitoramento.py
 │       ├── servico_relatorios.py
-│       └── servico_rotina.py
+│       └── servico_rotinas.py
 │
 ├── domain/
-│   ├── entities/
+│   ├── models/
+│   │   ├── conquista.py
 │   │   ├── crianca.py
-│   │   ├── item_executado.py
-│   │   ├── rotina_executada.py
-│   │   ├── avaliacao.py
-│   │   ├── desvio_rotina.py
+│   │   ├── evolucao.py
 │   │   ├── item_rotina.py
 │   │   ├── perfil_sensorial.py
-│   │   ├── progresso.py
-│   │   ├── recorrencia.py
-│   │   ├── relatorio.py
+│   │   ├── pessoa.py
+│   │   ├── progresso_conquista.py
 │   │   ├── responsavel.py
-│   │   └── rotina_fixa.py
-│   │   ├── recorrencia.py
-│   │   ├── relatorio.py
-│   │   ├── responsavel.py
-│   │   └── rotina_fixa.py
-│   ├── events/
-│   │   ├── evento.py
-│   │   ├── evento_atividade.py
-│   │   ├── evento_crise.py
-│   │   ├── evento_marco.py
-│   │   └── evento_rotina_alterada.py
+│   │   └── rotina.py
+│   │
+│   └── events/
+│       └── eventos.py
+│
+├── infrastructure/
+│   │   ├── conquista.py
+│   │   ├── eventos.py
+│   │   ├── relatorios.py
+│   │   ├── rotinas.py
+│   │   └── main.py
+│   │
+│   ├── persistence/
+│   │   └── repository.py
+│   │
 │   └── mixins/
 │       └── exportavel_json.py
 │
-├── infrastructure/
-│   └── interface/
-│       ├── api/
-│       │   ├── eventos.py
-│       │   ├── rotinas.py
-│       │   ├── relatorios.py
-│       │   └── main.py
-│       └── repositories/
-│           ├── evento_repository.py
-│           ├── in_memory_evento_repo.py
-│           ├── in_memory_rotina_repo.py
-│           └── rotina_repository.py
-│
 ├── tests/
+│   ├── test_conquista.py
 │   ├── test_eventos.py
-│   ├── test_mocks.py
 │   ├── test_relatorios.py
 │   └── test_rotinas.py
 │
