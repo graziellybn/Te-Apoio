@@ -1,4 +1,4 @@
-from teapoio.domain.conquista import Conquista
+from teapoio.domain.models.conquista import Conquista
 class Progresso_conquista(Conquista):
     def __init__(self, nome, data, recompensa, criterios, nivel_dificuldade, categoria, status):
         super().__init__(nome, data, recompensa, criterios, nivel_dificuldade, categoria)
