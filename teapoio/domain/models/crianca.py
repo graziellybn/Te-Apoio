@@ -10,8 +10,8 @@ class Crianca(Pessoa):
                  nivel_suporte: str, data_nascimento: date = None):
         super().__init__(nome, idade, cpf, email, telefone)
 
-        if idade < 0 or idade > 18:
-            raise ValueError("Idade da criança deve estar entre 0 e 18 anos.")
+        if idade < 0 or idade >= 17:
+            raise ValueError("Idade da criança deve estar entre 0 e 16 anos.")
 
         if not responsavel:
             raise ValueError("Toda criança deve ter um responsável vinculado.")

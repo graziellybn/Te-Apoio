@@ -16,6 +16,10 @@ class Responsavel(Pessoa):
         during construction when only a single child is available; the
         ``adicionar_crianca`` method should be used for subsequent additions.
         """
+        # Validação: responsável deve ser maior de idade (>= 18)
+        if idade is None or idade < 18:
+            raise ValueError("Responsável deve ter 18 anos ou mais.")
+
         super().__init__(nome, idade, cpf, email, telefone)
         self.tipo_responsavel = tipo_responsavel
         self.endereco = endereco
