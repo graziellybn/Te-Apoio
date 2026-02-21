@@ -30,14 +30,14 @@ def input_int(mensagem: str, min_val: int | None = None, max_val: int | None = N
                     sys.stdout.write('\x1b[1A')
                     sys.stdout.write('\x1b[2K')
                     sys.stdout.flush()
-                print(f"Valor muito baixo. Deve ser >= {min_val}.")
+                print(f"Responsável deve ter {min_val} ou mais anos.")
                 continue
             if max_val is not None and valor_int > max_val:
                 if sys.stdout.isatty():
                     sys.stdout.write('\x1b[1A')
                     sys.stdout.write('\x1b[2K')
                     sys.stdout.flush()
-                print(f"Valor muito alto. Deve ser <= {max_val}.")
+                print(f"Criança deve ter {max_val} ou menos anos.")
                 continue
             return valor_int
         except ValueError:
@@ -45,7 +45,7 @@ def input_int(mensagem: str, min_val: int | None = None, max_val: int | None = N
                 sys.stdout.write('\x1b[1A')
                 sys.stdout.write('\x1b[2K')
                 sys.stdout.flush()
-            print("Entrada inválida. Digite um número inteiro.")
+            print("Erro. Digite as informações corretamente.")
 
 def criar_responsavel():
     print("\n=== Criar Responsável ===")
@@ -66,7 +66,7 @@ def criar_responsavel():
     except ValueError as e:
         msg = str(e)
         if "Responsável deve ter 18 anos" in msg:
-            print("Valor muito baixo. Deve ser >= 18.\n")
+            print("Responsável deve ter 18 ou mais.\n")
         else:
             print(f"Erro ao criar responsável: {e}\n")
     except Exception as e:
