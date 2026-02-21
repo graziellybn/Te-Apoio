@@ -29,3 +29,10 @@ class PerfilSensorial:
                 conflitos.append(sel)
 
         return conflitos
+    
+    def adaptarRotina(self, rotina):
+        for item in rotina.itens:
+            if "som alto" in self.preferencias and item.tarefa == "assistir vídeo":
+                item.dificuldade += 1  # aumenta dificuldade por sensibilidade auditiva
+        return rotina
+
