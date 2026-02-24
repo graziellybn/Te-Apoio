@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from enum import Enum
 from uuid import uuid4
+
 from .item_rotina import ItemRotina
 
 
@@ -23,17 +24,11 @@ class DiaSemana(str, Enum):
 
 @dataclass
 class Rotina:
-
     nome: str
     tipo_recorrencia: TipoRecorrenciaRotina
     crianca_id: str | None = None
-
-    # Para rotina em data específica
     data_agendada: date | None = None
-
-    # Para rotina em dias específicos (ex.: SEG a SEX, só SAB)
     dias_semana: list[DiaSemana] = field(default_factory=list)
-
     descricao: str | None = None
     ativa: bool = True
     itens: list[ItemRotina] = field(default_factory=list)
@@ -73,7 +68,6 @@ class Rotina:
         self._validar_ordens_unicas()
 
     def _normalizar_e_validar_dias_semana(self) -> None:
-
         dias_unicos: list[DiaSemana] = []
         vistos = set()
 
@@ -100,11 +94,7 @@ class Rotina:
         if len(ordens) != len(set(ordens)):
             raise ValueError("Não pode haver dois itens com a mesma ordem na rotina.")
 
-    # -------------------------
-    # Regras de cadastro/edição de itens
-    # -------------------------
     def cadastrar_item(self, item: ItemRotina) -> None:
-
         if not isinstance(item, ItemRotina):
             raise TypeError("item deve ser uma instância de ItemRotina.")
 
@@ -121,10 +111,6 @@ class Rotina:
         horario_inicio=None,
         horario_fim=None,
     ) -> ItemRotina:
-        """
-        Cria e adiciona item automaticamente com próxima ordem disponível.
-        Útil para cadastro item a item pelo usuário.
-        """
         proxima_ordem = self._proxima_ordem_disponivel()
         item = ItemRotina(
             nome=nome,
@@ -138,10 +124,6 @@ class Rotina:
         return item
 
     def remover_item(self, item_id: str) -> None:
-        """
-        Remove item pelo id.
-        Depois, reordena para manter sequência.
-        """
         quantidade_antes = len(self.itens)
         self.itens = [item for item in self.itens if item.id != item_id]
 
@@ -151,10 +133,6 @@ class Rotina:
         self.reindexar_ordens()
 
     def editar_ordem_item(self, item_id: str, nova_ordem: int) -> None:
-        """
-        Altera a ordem de um item e reorganiza a lista.
-        A nova ordem passa a valer se as alterações forem salvas (objeto já fica alterado aqui).
-        """
         if nova_ordem < 1:
             raise ValueError("nova_ordem deve ser >= 1.")
 
@@ -162,19 +140,15 @@ class Rotina:
         if item_alvo is None:
             raise ValueError("Item não encontrado.")
 
-        # Remove temporariamente o item da lista
         outros_itens = [item for item in self.itens if item.id != item_id]
 
-        # Limita a posição para não extrapolar
         if nova_ordem > len(outros_itens) + 1:
             nova_ordem = len(outros_itens) + 1
 
-        # Reordena inserindo o item no novo índice lógico
         novo_indice = nova_ordem - 1
         outros_itens.sort(key=lambda x: x.ordem)
         outros_itens.insert(novo_indice, item_alvo)
 
-        # Reatribui ordens sequenciais
         for idx, item in enumerate(outros_itens, start=1):
             item.ordem = idx
 
@@ -188,9 +162,6 @@ class Rotina:
         return None
 
     def reindexar_ordens(self) -> None:
-        """
-        Reorganiza as ordens em sequência (1..N) conforme a ordem atual da lista.
-        """
         self._ordenar_itens_por_ordem()
         for idx, item in enumerate(self.itens, start=1):
             item.ordem = idx
@@ -203,13 +174,7 @@ class Rotina:
             return 1
         return max(item.ordem for item in self.itens) + 1
 
-    # -------------------------
-    # Regras de agenda/recorrência
-    # -------------------------
     def se_aplica_na_data(self, data_consulta: date) -> bool:
-        """
-        Verifica se essa rotina deve ser considerada para uma data específica.
-        """
         if self.tipo_recorrencia == TipoRecorrenciaRotina.DATA_UNICA:
             return self.data_agendada == data_consulta
 
@@ -217,7 +182,6 @@ class Rotina:
             return True
 
         if self.tipo_recorrencia == TipoRecorrenciaRotina.DIAS_ESPECIFICOS:
-            # weekday() -> segunda=0 ... domingo=6
             mapa_weekday = {
                 0: DiaSemana.SEG,
                 1: DiaSemana.TER,
@@ -232,14 +196,8 @@ class Rotina:
 
         return False
 
-    # -------------------------
-    # Sugestões de rotinas fixas
-    # -------------------------
     @staticmethod
     def sugerir_modelos_fixos() -> list[str]:
-        """
-        Sugestões para mostrar ao usuário ao iniciar o cadastro de rotina.
-        """
         return [
             "Rotina de consultas",
             "Rotina de férias",
