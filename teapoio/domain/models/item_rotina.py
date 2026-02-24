@@ -5,7 +5,6 @@ from uuid import uuid4
 
 @dataclass
 class ItemRotina:
-
     nome: str
     descricao: str | None = None
     horario_inicio: time | None = None
@@ -17,20 +16,19 @@ class ItemRotina:
         self.validar()
 
     def validar(self) -> None:
-        # Nome é obrigatório
         if not self.nome or not self.nome.strip():
             raise ValueError("O nome do item da rotina é obrigatório.")
 
-        # Ordem precisa ser positiva
         if self.ordem < 1:
             raise ValueError("A ordem do item deve ser maior ou igual a 1.")
 
+        # Pode ter só início, mas não pode ter só fim
         if self.horario_fim is not None and self.horario_inicio is None:
             raise ValueError(
                 "Não é permitido informar apenas horário de fim sem horário de início."
             )
 
-        # Se ambos existirem, fim não pode ser antes do início
+        # Se tiver início e fim, fim não pode ser antes do início
         if self.horario_inicio is not None and self.horario_fim is not None:
             if self.horario_fim < self.horario_inicio:
                 raise ValueError("O horário de fim não pode ser anterior ao horário de início.")
@@ -42,7 +40,6 @@ class ItemRotina:
         horario_inicio: time | None = None,
         horario_fim: time | None = None,
     ) -> None:
-
         if nome is not None:
             self.nome = nome
         self.descricao = descricao
