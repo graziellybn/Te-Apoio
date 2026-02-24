@@ -1,3 +1,4 @@
+
 class Conquista:
     def __init__(self, nome, data, recompensa, criterios, nivel_dificuldade, categoria):
         self.nome = nome

@@ -9,13 +9,7 @@ class Responsavel(Pessoa):
     def __init__(self, nome, idade, cpf, email, telefone, tipo_responsavel,
         endereco: str | None = None, crianca=None, quant_criancas=0,
     ):
-        """Create a new responsible person (guardian).
 
-        Parameters are similar to :class:`Pessoa` with an additional
-        ``tipo_responsavel`` and optional ``endereco``.  ``crianca`` is used
-        during construction when only a single child is available; the
-        ``adicionar_crianca`` method should be used for subsequent additions.
-        """
         # Validação: responsável deve ser maior de idade (>= 18)
         if idade is None or idade < 18:
             raise ValueError("Responsável deve ter 18 anos ou mais.")

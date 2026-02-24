@@ -1,4 +1,3 @@
-# teapoio/infrastructure/cli.py
 from teapoio.domain.models.crianca import Crianca
 from teapoio.domain.models.responsavel import Responsavel
 import sys
@@ -26,7 +25,6 @@ def input_int(mensagem: str, min_val: int | None = None, max_val: int | None = N
             valor_int = int(valor)
             if min_val is not None and valor_int < min_val:
                 if sys.stdout.isatty():
-                    # limpa a linha com a entrada do usuário
                     sys.stdout.write('\x1b[1A')
                     sys.stdout.write('\x1b[2K')
                     sys.stdout.flush()
@@ -50,7 +48,6 @@ def input_int(mensagem: str, min_val: int | None = None, max_val: int | None = N
 def criar_responsavel():
     print("\n=== Criar Responsável ===")
     nome = input("Nome: ")
-    # valida idade no input: responsável deve ter >= 18 anos
     idade = input_int("Idade do responsável", min_val=18)
     cpf = input("CPF: ")
     email = input("Email: ")
@@ -129,21 +126,21 @@ def menu():
     while True:
         print("=== Sistema Teapoio ===")
         print("1. Criar responsável")
-        print("2. Adicionar criança")
-        print("3. Listar crianças")
+        # só mostra as outras opções se já existir pelo menos um responsável
+        if responsaveis:
+            print("2. Adicionar criança")
+            print("3. Listar crianças")
         print("0. Sair")
         opcao = input("Escolha uma opção: ")
 
         if opcao == "1":
             criar_responsavel()
-        elif opcao == "2":
+        elif opcao == "2" and responsaveis:
             adicionar_crianca()
-        elif opcao == "3":
+        elif opcao == "3" and responsaveis:
             listar_criancas()
         elif opcao == "0":
             print("Saindo...")
             break
         else:
             print("Opção inválida.\n")
-
-
