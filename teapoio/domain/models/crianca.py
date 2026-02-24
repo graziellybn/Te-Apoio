@@ -6,11 +6,11 @@ from teapoio.domain.models.responsavel import Responsavel
 class Crianca(Pessoa):
     NIVEIS_SUPORTE_VALIDOS = {"baixo", "moderado", "alto"}
 
-    def __init__(self, nome: str, idade: int, cpf: str,
+    def __init__(self, nome: str, idade: int,
                  responsavel: Responsavel, nivel_suporte: str,
                  data_nascimento: Optional[date] = None):
         
-        super().__init__(nome, idade, cpf)
+        super().__init__(nome, idade)
 
         if idade < 0 or idade >= 17:
             raise ValueError("Idade da criança deve estar entre 0 e 17 anos.")
