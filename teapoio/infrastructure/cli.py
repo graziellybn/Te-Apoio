@@ -9,7 +9,7 @@ from datetime import date, time
 import sys
 
 responsaveis = {}
-rotinas = {}  # chave: cpf da criança -> lista[Rotina]
+rotinas = {}  # chave: id da criança -> lista[Rotina]
 
 
 # =========================
@@ -98,22 +98,21 @@ def input_nao_vazio(mensagem: str) -> str:
         print("Campo obrigatório. Tente novamente.")
 
 
-def buscar_crianca_por_cpf(cpf_crianca: str):
+def buscar_crianca_por_nome(resp_cpf: str, nome_crianca: str):
     """
-    Procura a criança em todos os responsáveis cadastrados.
+    Procura a criança pelo nome dentro do responsável informado.
     Retorna (crianca, responsavel) ou (None, None)
     """
-    for resp in responsaveis.values():
-        try:
-            criancas = resp.listar_criancas()
-        except Exception:
-            criancas = []
+    resp = responsaveis.get(resp_cpf)
+    if not resp:
+        return None, None
 
-        for c in criancas:
-            if getattr(c, "cpf", None) == cpf_crianca:
-                return c, resp
+    nome_normalizado = nome_crianca.strip().lower()
+    for c in resp.listar_criancas():
+        if c.nome.strip().lower() == nome_normalizado:
+            return c, resp
 
-    return None, None
+    return None, resp
 
 
 # =========================
@@ -124,8 +123,8 @@ def criar_responsavel():
     nome = input("Nome: ")
     idade = input_int("Idade do responsável", min_val=18)
     cpf = input("CPF: ")
-    email = input("Email: ")
-    telefone = input("Telefone: ")
+    email = input("Email: ").strip()
+    telefone = input("Telefone: ").strip()
     tipo = input("Tipo de responsável (Mãe/Pai/etc): ")
     endereco = input("Endereço (opcional): ") or None
     quant = input_int("Quantidade de crianças: ")
@@ -154,16 +153,14 @@ def adicionar_crianca():
 
     nome = input("Nome da criança: ")
     idade = input_int("Idade da criança", min_val=0, max_val=17)
-    cpf = input("CPF: ")
-    email = input("Email: ")
-    telefone = input("Telefone: ")
+    email = input("Email (opcional): ") or None
+    telefone = input("Telefone: ").strip()
     nivel = input("Nível de suporte (baixo/moderado/alto): ").lower()
 
     try:
         crianca = Crianca(
             nome=nome,
             idade=idade,
-            cpf=cpf,
             email=email,
             telefone=telefone,
             responsavel=resp,
@@ -179,6 +176,23 @@ def adicionar_crianca():
             print(f"Erro ao adicionar criança: {e}\n")
     except Exception as e:
         print(f"Erro ao adicionar criança: {e}\n")
+
+
+
+def selecionar_crianca_por_responsavel():
+    resp_cpf = input_nao_vazio("CPF do responsável: ")
+    nome_crianca = input_nao_vazio("Nome da criança: ")
+
+    crianca, resp = buscar_crianca_por_nome(resp_cpf, nome_crianca)
+    if not resp:
+        print("Responsável não encontrado.\n")
+        return None, None
+
+    if not crianca:
+        print("Criança não encontrada para este responsável.\n")
+        return None, resp
+
+    return crianca, resp
 
 
 def listar_criancas():
@@ -308,12 +322,11 @@ def cadastrar_itens_da_rotina(rotina: Rotina):
 def cadastrar_rotina():
     print("\n=== Cadastrar Rotina ===")
 
-    # localizar criança
-    cpf_crianca = input_nao_vazio("CPF da criança: ")
-    crianca, resp = buscar_crianca_por_cpf(cpf_crianca)
+    # localizar criança sem usar CPF
+    crianca, resp = selecionar_crianca_por_responsavel()
 
     if not crianca:
-        print("Criança não encontrada. Cadastre a criança antes de criar rotina.\n")
+        print("Cadastre a criança antes de criar rotina.\n")
         return
 
     print(f"Criança encontrada: {crianca.nome} (responsável: {resp.nome})")
@@ -345,7 +358,7 @@ def cadastrar_rotina():
         rotina = Rotina(
             nome=nome_rotina,
             tipo_recorrencia=tipo,
-            crianca_id=getattr(crianca, "cpf", None),  # usa CPF da criança como identificador
+            crianca_id=crianca.id,
             data_agendada=data_agendada,
             dias_semana=dias_semana,
             descricao=descricao,
@@ -354,7 +367,7 @@ def cadastrar_rotina():
         cadastrar_itens_da_rotina(rotina)
 
         # salvar em memória (usuário pode ter várias rotinas)
-        rotinas.setdefault(cpf_crianca, []).append(rotina)
+        rotinas.setdefault(crianca.id, []).append(rotina)
 
         print(f"\nRotina '{rotina.nome}' cadastrada com sucesso para {crianca.nome}!")
         print(f"Total de itens: {len(rotina.itens)}\n")
@@ -365,14 +378,11 @@ def cadastrar_rotina():
 
 def listar_rotinas_da_crianca():
     print("\n=== Listar Rotinas da Criança ===")
-    cpf_crianca = input_nao_vazio("CPF da criança: ")
-
-    crianca, _ = buscar_crianca_por_cpf(cpf_crianca)
+    crianca, _ = selecionar_crianca_por_responsavel()
     if not crianca:
-        print("Criança não encontrada.\n")
         return
 
-    lista = rotinas.get(cpf_crianca, [])
+    lista = rotinas.get(crianca.id, [])
     if not lista:
         print(f"{crianca.nome} ainda não possui rotinas cadastradas.\n")
         return
@@ -383,8 +393,8 @@ def listar_rotinas_da_crianca():
     print()
 
 
-def selecionar_rotina_da_crianca(cpf_crianca: str) -> Rotina | None:
-    lista = rotinas.get(cpf_crianca, [])
+def selecionar_rotina_da_crianca(crianca_id: str) -> Rotina | None:
+    lista = rotinas.get(crianca_id, [])
     if not lista:
         return None
 
@@ -398,14 +408,11 @@ def selecionar_rotina_da_crianca(cpf_crianca: str) -> Rotina | None:
 
 def adicionar_item_em_rotina():
     print("\n=== Adicionar Item em Rotina ===")
-    cpf_crianca = input_nao_vazio("CPF da criança: ")
-
-    crianca, _ = buscar_crianca_por_cpf(cpf_crianca)
+    crianca, _ = selecionar_crianca_por_responsavel()
     if not crianca:
-        print("Criança não encontrada.\n")
         return
 
-    rotina = selecionar_rotina_da_crianca(cpf_crianca)
+    rotina = selecionar_rotina_da_crianca(crianca.id)
     if not rotina:
         print("Nenhuma rotina encontrada para essa criança.\n")
         return
@@ -431,14 +438,11 @@ def adicionar_item_em_rotina():
 
 def visualizar_itens_da_rotina():
     print("\n=== Visualizar Itens da Rotina ===")
-    cpf_crianca = input_nao_vazio("CPF da criança: ")
-
-    crianca, _ = buscar_crianca_por_cpf(cpf_crianca)
+    crianca, _ = selecionar_crianca_por_responsavel()
     if not crianca:
-        print("Criança não encontrada.\n")
         return
 
-    rotina = selecionar_rotina_da_crianca(cpf_crianca)
+    rotina = selecionar_rotina_da_crianca(crianca.id)
     if not rotina:
         print("Nenhuma rotina encontrada.\n")
         return
@@ -459,14 +463,11 @@ def visualizar_itens_da_rotina():
 
 def editar_ordem_item_da_rotina():
     print("\n=== Editar Ordem de Item da Rotina ===")
-    cpf_crianca = input_nao_vazio("CPF da criança: ")
-
-    crianca, _ = buscar_crianca_por_cpf(cpf_crianca)
+    crianca, _ = selecionar_crianca_por_responsavel()
     if not crianca:
-        print("Criança não encontrada.\n")
         return
 
-    rotina = selecionar_rotina_da_crianca(cpf_crianca)
+    rotina = selecionar_rotina_da_crianca(crianca.id)
     if not rotina:
         print("Nenhuma rotina encontrada.\n")
         return
