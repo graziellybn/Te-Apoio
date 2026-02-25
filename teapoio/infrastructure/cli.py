@@ -1,536 +1,625 @@
-from teapoio.domain.models.crianca import Crianca
-from teapoio.domain.models.responsavel import Responsavel
-
-# ajuste os imports conforme seus arquivos reais:
-from teapoio.domain.models.rotina import Rotina, TipoRecorrenciaRotina, DiaSemana
-from teapoio.domain.models.item_rotina import ItemRotina
-
-from datetime import date, time
 import sys
+from datetime import date
 
-responsaveis = {}
-rotinas = {}  # chave: cpf da criança -> lista[Rotina]
+from teapoio.domain.models.responsavel import Responsavel
+from teapoio.domain.models.crianca import Crianca
+from teapoio.domain.models.perfil_sensorial import PerfilSensorial
+from teapoio.domain.events.eventos import Evento
+from teapoio.infrastructure.persistence import repository
 
 
-# =========================
-# Funções auxiliares
-# =========================
-def input_int(mensagem: str, min_val: int | None = None, max_val: int | None = None) -> int:
-    range_text = ""
-    if min_val is not None and max_val is not None:
-        range_text = f" ({min_val}-{max_val})"
-    elif min_val is not None:
-        range_text = f" (>= {min_val})"
-    elif max_val is not None:
-        range_text = f" (<= {max_val})"
+# ══════════════════════════════════════════════════════════
+# Helpers de entrada
+# ══════════════════════════════════════════════════════════
 
-    prompt = mensagem if mensagem.endswith(" ") else mensagem + " "
+def _limpar_linha():
+    if sys.stdout.isatty():
+        sys.stdout.write('\x1b[1A\x1b[2K')
+        sys.stdout.flush()
 
-    while True:
-        if range_text:
-            valor = input(prompt + range_text + ": ")
-        else:
-            valor = input(prompt)
-        try:
-            valor_int = int(valor)
-            if min_val is not None and valor_int < min_val:
-                if sys.stdout.isatty():
-                    sys.stdout.write('\x1b[1A')
-                    sys.stdout.write('\x1b[2K')
-                    sys.stdout.flush()
-                print(f"Valor deve ser >= {min_val}.")
+
+def separador(char="─", largura=50):
+    print(char * largura)
+
+
+# ══════════════════════════════════════════════════════════
+# Cadastro de Responsável
+# ══════════════════════════════════════════════════════════
+
+def _coletar_dados_responsavel() -> Responsavel | None:
+    """
+    Coleta dados do responsável passo a passo.
+    Retorna Responsavel ou None se o usuário quiser voltar ao menu inicial.
+    """
+    campos = [
+        ("nome",           "Nome completo: "),
+        ("email",          "E-mail: "),
+        ("telefone",       "Telefone: "),
+        ("tipo",           "Tipo de responsável (Mãe/Pai/Outro): "),
+        ("endereco",       "Endereço (opcional, Enter para pular): "),
+        ("quant_criancas", "Quantidade de crianças a cadastrar (1-3): "),
+    ]
+
+    dados: dict = {}
+    idx = 0
+
+    separador()
+    print("=== Cadastro de Responsável ===")
+    print("(Digite 'voltar' para retornar ao menu inicial)")
+    separador()
+
+    while idx < len(campos):
+        chave, mensagem = campos[idx]
+
+        if chave == "quant_criancas":
+            valor = input(mensagem).strip()
+            if valor.lower() == "voltar":
+                if idx == 0:
+                    return None
+                idx -= 1
                 continue
-            if max_val is not None and valor_int > max_val:
-                if sys.stdout.isatty():
-                    sys.stdout.write('\x1b[1A')
-                    sys.stdout.write('\x1b[2K')
-                    sys.stdout.flush()
-                print(f"Valor deve ser <= {max_val}.")
+            if valor not in ("1", "2", "3"):
+                print("Escolha 1, 2 ou 3.")
                 continue
-            return valor_int
-        except ValueError:
-            if sys.stdout.isatty():
-                sys.stdout.write('\x1b[1A')
-                sys.stdout.write('\x1b[2K')
-                sys.stdout.flush()
-            print("Erro. Digite as informações corretamente.")
+            dados[chave] = int(valor)
 
+        elif chave == "endereco":
+            valor = input(mensagem).strip()
+            if valor.lower() == "voltar":
+                if idx == 0:
+                    return None
+                idx -= 1
+                continue
+            dados[chave] = valor or None
 
-def input_data_opcional(mensagem: str) -> date | None:
-    """
-    Formato esperado: DD/MM/AAAA
-    Enter vazio => None
-    """
-    valor = input(mensagem).strip()
-    if not valor:
-        return None
-
-    try:
-        dia, mes, ano = map(int, valor.split("/"))
-        return date(ano, mes, dia)
-    except Exception:
-        print("Data inválida. Use o formato DD/MM/AAAA.")
-        return None
-
-
-def input_time_opcional(mensagem: str) -> time | None:
-    """
-    Formato esperado: HH:MM
-    Enter vazio => None
-    """
-    valor = input(mensagem).strip()
-    if not valor:
-        return None
-
-    try:
-        hora, minuto = map(int, valor.split(":"))
-        return time(hour=hora, minute=minuto)
-    except Exception:
-        print("Horário inválido. Use o formato HH:MM.")
-        return None
-
-
-def input_nao_vazio(mensagem: str) -> str:
-    while True:
-        valor = input(mensagem).strip()
-        if valor:
-            return valor
-        print("Campo obrigatório. Tente novamente.")
-
-
-def buscar_crianca_por_cpf(cpf_crianca: str):
-    """
-    Procura a criança em todos os responsáveis cadastrados.
-    Retorna (crianca, responsavel) ou (None, None)
-    """
-    for resp in responsaveis.values():
-        try:
-            criancas = resp.listar_criancas()
-        except Exception:
-            criancas = []
-
-        for c in criancas:
-            if getattr(c, "cpf", None) == cpf_crianca:
-                return c, resp
-
-    return None, None
-
-
-# =========================
-# Cadastro de responsável/criança (seu código)
-# =========================
-def criar_responsavel():
-    print("\n=== Cadastro de Responsável ===")
-    nome = input("Nome: ")
-    idade = input_int("Idade do responsável", min_val=18)
-    cpf = input("CPF: ")
-    email = input("Email: ")
-    telefone = input("Telefone: ")
-    tipo = input("Tipo de responsável (Mãe/Pai/etc): ")
-    endereco = input("Endereço (opcional): ") or None
-    quant = input_int("Quantidade de crianças: ")
-
-    try:
-        resp = Responsavel(nome, idade, cpf, email, telefone, tipo, endereco, quant_criancas=quant)
-        responsaveis[cpf] = resp
-        print(f"Responsável {nome} criado com sucesso!\n")
-    except ValueError as e:
-        msg = str(e)
-        if "Responsável deve ter 18 anos" in msg:
-            print("Responsável deve ter 18 ou mais.\n")
         else:
-            print(f"Erro ao cadastrar responsável: {e}\n")
-    except Exception as e:
-        print(f"Erro ao cadastrar responsável: {e}\n")
+            valor = input(mensagem).strip()
+            if valor.lower() == "voltar":
+                if idx == 0:
+                    return None
+                idx -= 1
+                continue
+            if not valor:
+                print("Campo obrigatório.")
+                continue
+            dados[chave] = valor
+
+        idx += 1
+
+    resp = Responsavel(
+        nome=dados["nome"],
+        email=dados["email"],
+        telefone=dados["telefone"],
+        tipo_responsavel=dados["tipo"],
+        endereco=dados.get("endereco"),
+        quant_criancas=dados["quant_criancas"],
+    )
+    return resp
 
 
-def adicionar_crianca():
-    print("\n=== Adicionar Criança ===")
-    resp_cpf = input("CPF do responsável: ")
-    resp = responsaveis.get(resp_cpf)
-    if not resp:
-        print("Responsável não encontrado.\n")
-        return
+# ══════════════════════════════════════════════════════════
+# Cadastro de Crianças
+# ══════════════════════════════════════════════════════════
 
-    nome = input("Nome da criança: ")
-    idade = input_int("Idade da criança", min_val=0, max_val=17)
-    cpf = input("CPF: ")
-    email = input("Email: ")
-    telefone = input("Telefone: ")
-    nivel = input("Nível de suporte (baixo/moderado/alto): ").lower()
+def _coletar_dados_crianca(numero: int, total: int, responsavel_id: str) -> Crianca | None:
+    """
+    Coleta dados de uma criança.
+    Retorna Crianca ou None se usuário quiser voltar.
+    """
+    campos = [
+        ("nome",            f"Nome da criança {numero}/{total}: "),
+        ("data_nascimento", "Data de nascimento (DD/MM/AAAA, Enter para pular): "),
+        ("nivel_suporte",   "Nível de suporte (baixo/moderado/alto): "),
+    ]
 
-    try:
-        crianca = Crianca(
-            nome=nome,
-            idade=idade,
-            cpf=cpf,
-            email=email,
-            telefone=telefone,
-            responsavel=resp,
-            nivel_suporte=nivel
-        )
+    dados: dict = {}
+    idx = 0
+
+    separador()
+    print(f"=== Cadastro de Criança {numero}/{total} ===")
+    print("(Digite 'voltar' para retornar à etapa anterior)")
+    separador()
+
+    while idx < len(campos):
+        chave, mensagem = campos[idx]
+
+        if chave == "data_nascimento":
+            valor = input(mensagem).strip()
+            if valor.lower() == "voltar":
+                if idx == 0:
+                    return None
+                idx -= 1
+                continue
+            if valor:
+                try:
+                    dia, mes, ano = map(int, valor.split("/"))
+                    dados[chave] = date(ano, mes, dia)
+                except Exception:
+                    print("Data inválida. Use DD/MM/AAAA.")
+                    continue
+            else:
+                dados[chave] = None
+
+        elif chave == "nivel_suporte":
+            valor = input(mensagem).strip().lower()
+            if valor == "voltar":
+                if idx == 0:
+                    return None
+                idx -= 1
+                continue
+            if valor not in ("baixo", "moderado", "alto"):
+                print("Nível inválido. Use: baixo, moderado ou alto.")
+                continue
+            dados[chave] = valor
+
+        else:
+            valor = input(mensagem).strip()
+            if valor.lower() == "voltar":
+                if idx == 0:
+                    return None
+                idx -= 1
+                continue
+            if not valor:
+                print("Campo obrigatório.")
+                continue
+            dados[chave] = valor
+
+        idx += 1
+
+    crianca = Crianca(
+        nome=dados["nome"],
+        nivel_suporte=dados["nivel_suporte"],
+        responsavel_id=responsavel_id,
+        data_nascimento=dados.get("data_nascimento"),
+    )
+    return crianca
+
+
+# ══════════════════════════════════════════════════════════
+# Fluxo de Cadastro Completo
+# ══════════════════════════════════════════════════════════
+
+def fluxo_cadastro() -> tuple | None:
+    """
+    Conduz o fluxo completo de cadastro: responsável → crianças.
+    Retorna (responsavel, criancas) ou None para voltar ao menu.
+    """
+    resp = _coletar_dados_responsavel()
+    if resp is None:
+        return None
+
+    repository.salvar_responsavel(resp)
+    separador()
+    print("\u2714 Responsável cadastrado com sucesso!")
+    print(f"  Nome : {resp.nome}")
+    print(f"  ID   : {resp.id}")
+    separador()
+
+    total = resp.quant_criancas
+    criancas: list[Crianca] = []
+    i = 0
+
+    while i < total:
+        crianca = _coletar_dados_crianca(i + 1, total, resp.id)
+        if crianca is None:
+            if i == 0:
+                novo_resp = _coletar_dados_responsavel()
+                if novo_resp is None:
+                    return None
+                repository.salvar_responsavel(novo_resp)
+                resp = novo_resp
+                total = resp.quant_criancas
+                criancas = []
+                continue
+            else:
+                i -= 1
+                criancas.pop()
+                continue
+
+        repository.salvar_crianca(crianca)
         resp.adicionar_crianca(crianca)
-        print(f"Criança {nome} adicionada ao responsável {resp.nome}.\n")
-    except ValueError as e:
-        msg = str(e)
-        if "Idade da criança" in msg or "Idade da criança deve estar" in msg:
-            print("Erro ao adicionar criança: idade inválida. Idade válida: 0–17 anos.\n")
-        else:
-            print(f"Erro ao adicionar criança: {e}\n")
-    except Exception as e:
-        print(f"Erro ao adicionar criança: {e}\n")
+        criancas.append(crianca)
+
+        separador()
+        print("\u2714 Criança cadastrada com sucesso!")
+        print(f"  Nome : {crianca.nome}")
+        print(f"  ID   : {crianca.id}")
+        separador()
+        i += 1
+
+    print("\nTodos os cadastros concluídos. Entrando no sistema...\n")
+    return resp, criancas
 
 
-def listar_criancas():
-    print("\n=== Listar Crianças ===")
-    resp_cpf = input("CPF do responsável: ")
-    resp = responsaveis.get(resp_cpf)
-    if not resp:
-        print("Responsável não encontrado.\n")
-        return
+# ══════════════════════════════════════════════════════════
+# Tela do Sistema Principal
+# ══════════════════════════════════════════════════════════
 
-    if not resp.listar_criancas():
-        print(f"{resp.nome} ainda não tem crianças cadastradas.\n")
-        return
-
-    print(f"\nCrianças de {resp.nome}:")
-    for c in resp.listar_criancas():
-        print(f"- {c.nome}, {c.idade} anos, suporte: {c.nivel_suporte}")
-    print()
-
-
-# =========================
-# Funções de Rotina (NOVO)
-# =========================
-def mostrar_sugestoes_rotina():
-    print("\nSugestões de rotinas fixas:")
-    for idx, sugestao in enumerate(Rotina.sugerir_modelos_fixos(), start=1):
-        print(f"{idx}. {sugestao}")
-    print()
-
-
-def escolher_tipo_recorrencia() -> TipoRecorrenciaRotina:
-    print("\nTipo de recorrência da rotina:")
-    print("1. Data única")
-    print("2. Todos os dias")
-    print("3. Dias específicos")
-
+def tela_sistema(resp: Responsavel, criancas: list[Crianca]):
     while True:
-        op = input("Escolha uma opção: ").strip()
+        separador("═")
+        print(f"  SISTEMA TE APOIO  —  Olá, {resp.nome}!")
+        separador("═")
+        print("\nCrianças cadastradas:")
+        for c in criancas:
+            dn = c.data_nascimento.strftime("%d/%m/%Y") if c.data_nascimento else "—"
+            print(f"  [{c.id[:8]}]  {c.nome}  |  Nasc.: {dn}  |  Suporte: {c.nivel_suporte}")
+
+        print("\nO que deseja fazer?")
+        print("  1. Configurações de Perfil")
+        print("  2. Calendário")
+        print("  0. Sair")
+        separador()
+
+        op = input("Opção: ").strip()
         if op == "1":
-            return TipoRecorrenciaRotina.DATA_UNICA
+            criancas = tela_configuracoes(resp, criancas)
         elif op == "2":
-            return TipoRecorrenciaRotina.TODOS_OS_DIAS
-        elif op == "3":
-            return TipoRecorrenciaRotina.DIAS_ESPECIFICOS
-        print("Opção inválida.")
-
-
-def escolher_dias_semana() -> list[DiaSemana]:
-    print("\nInforme os dias da semana (separados por vírgula).")
-    print("Opções válidas: SEG, TER, QUA, QUI, SEX, SAB, DOM")
-    while True:
-        entrada = input("Dias: ").strip().upper()
-        if not entrada:
-            print("Informe ao menos um dia.")
-            continue
-
-        partes = [p.strip() for p in entrada.split(",") if p.strip()]
-        dias = []
-        erro = False
-
-        mapa = {
-            "SEG": DiaSemana.SEG,
-            "TER": DiaSemana.TER,
-            "QUA": DiaSemana.QUA,
-            "QUI": DiaSemana.QUI,
-            "SEX": DiaSemana.SEX,
-            "SAB": DiaSemana.SAB,
-            "DOM": DiaSemana.DOM,
-        }
-
-        for p in partes:
-            if p not in mapa:
-                print(f"Dia inválido: {p}")
-                erro = True
-                break
-            dias.append(mapa[p])
-
-        if erro:
-            continue
-
-        # remove duplicados preservando ordem
-        dias_unicos = []
-        vistos = set()
-        for d in dias:
-            if d.value not in vistos:
-                vistos.add(d.value)
-                dias_unicos.append(d)
-
-        return dias_unicos
-
-
-def cadastrar_itens_da_rotina(rotina: Rotina):
-    print("\n=== Cadastro de Itens da Rotina ===")
-    print("Cadastre os itens um por um. Digite ENTER no nome para encerrar.\n")
-
-    while True:
-        nome = input("Nome do item (ENTER para finalizar): ").strip()
-        if not nome:
+            tela_calendario(criancas)
+        elif op == "0":
+            print("Saindo...")
             break
-
-        descricao = input("Descrição (opcional): ").strip() or None
-
-        horario_inicio = None
-        horario_fim = None
-
-        while True:
-            horario_inicio = input_time_opcional("Horário de início (HH:MM, opcional): ")
-            horario_fim = input_time_opcional("Horário de fim (HH:MM, opcional): ")
-
-            try:
-                item = rotina.cadastrar_item_automatico(
-                    nome=nome,
-                    descricao=descricao,
-                    horario_inicio=horario_inicio,
-                    horario_fim=horario_fim,
-                )
-                print(f"Item '{item.nome}' cadastrado com ordem {item.ordem}.\n")
-                break
-            except Exception as e:
-                print(f"Erro ao cadastrar item: {e}")
-                print("Tente informar os horários novamente.\n")
-
-    if not rotina.itens:
-        print("Atenção: rotina criada sem itens.")
+        else:
+            print("Opção inválida.\n")
 
 
-def cadastrar_rotina():
-    print("\n=== Cadastrar Rotina ===")
+# ══════════════════════════════════════════════════════════
+# Configurações de Perfil
+# ══════════════════════════════════════════════════════════
 
-    # localizar criança
-    cpf_crianca = input_nao_vazio("CPF da criança: ")
-    crianca, resp = buscar_crianca_por_cpf(cpf_crianca)
-
-    if not crianca:
-        print("Criança não encontrada. Cadastre a criança antes de criar rotina.\n")
-        return
-
-    print(f"Criança encontrada: {crianca.nome} (responsável: {resp.nome})")
-
-    # sugestões
-    ver_sugestoes = input("Deseja ver sugestões de rotina fixa? (s/n): ").strip().lower()
-    if ver_sugestoes == "s":
-        mostrar_sugestoes_rotina()
-
-    nome_rotina = input_nao_vazio("Nome da rotina: ")
-    descricao = input("Descrição (opcional): ").strip() or None
-
-    tipo = escolher_tipo_recorrencia()
-
-    data_agendada = None
-    dias_semana = []
-
-    if tipo == TipoRecorrenciaRotina.DATA_UNICA:
-        while True:
-            data_agendada = input_data_opcional("Data agendada (DD/MM/AAAA): ")
-            if data_agendada is not None:
-                break
-            print("A data é obrigatória para rotina de data única.")
-
-    elif tipo == TipoRecorrenciaRotina.DIAS_ESPECIFICOS:
-        dias_semana = escolher_dias_semana()
-
-    try:
-        rotina = Rotina(
-            nome=nome_rotina,
-            tipo_recorrencia=tipo,
-            crianca_id=getattr(crianca, "cpf", None),  # usa CPF da criança como identificador
-            data_agendada=data_agendada,
-            dias_semana=dias_semana,
-            descricao=descricao,
-        )
-
-        cadastrar_itens_da_rotina(rotina)
-
-        # salvar em memória (usuário pode ter várias rotinas)
-        rotinas.setdefault(cpf_crianca, []).append(rotina)
-
-        print(f"\nRotina '{rotina.nome}' cadastrada com sucesso para {crianca.nome}!")
-        print(f"Total de itens: {len(rotina.itens)}\n")
-
-    except Exception as e:
-        print(f"Erro ao cadastrar rotina: {e}\n")
+def _exibir_dados_cadastrados(resp: Responsavel, criancas: list[Crianca]):
+    separador()
+    print("=== Dados Cadastrados ===")
+    separador()
+    print(f"Responsável: {resp.nome}  [ID: {resp.id[:8]}]")
+    print(f"  E-mail   : {resp.email or '—'}")
+    print(f"  Telefone : {resp.telefone or '—'}")
+    print(f"  Tipo     : {resp.tipo_responsavel}")
+    print(f"  Endereço : {resp.endereco or '—'}")
+    print()
+    print("Crianças:")
+    for c in criancas:
+        dn = c.data_nascimento.strftime("%d/%m/%Y") if c.data_nascimento else "—"
+        print(f"  [{c.id[:8]}] {c.nome}  |  Nasc.: {dn}  |  Suporte: {c.nivel_suporte}")
+        if c.perfil_sensorial:
+            ps = c.perfil_sensorial
+            print("    Perfil Sensorial:")
+            print(f"      Tátil    — sensibilidades: {ps.tatil_sensibilidades or '—'}  |  preferências: {ps.tatil_preferencias or '—'}")
+            print(f"      Auditivo — sensibilidades: {ps.auditivo_sensibilidades or '—'}  |  preferências: {ps.auditivo_preferencias or '—'}")
+            print(f"      Visual   — sensibilidades: {ps.visual_sensibilidades or '—'}  |  preferências: {ps.visual_preferencias or '—'}")
+    separador()
 
 
-def listar_rotinas_da_crianca():
-    print("\n=== Listar Rotinas da Criança ===")
-    cpf_crianca = input_nao_vazio("CPF da criança: ")
+def tela_configuracoes(resp: Responsavel, criancas: list[Crianca]) -> list[Crianca]:
+    while True:
+        _exibir_dados_cadastrados(resp, criancas)
+        print("Configurações de Perfil:")
+        print("  1. Adicionar/Atualizar Perfil Sensorial da Criança")
+        print("  2. Editar Informações")
+        print("  3. Excluir Criança")
+        print("  0. Voltar")
+        separador()
 
-    crianca, _ = buscar_crianca_por_cpf(cpf_crianca)
+        op = input("Opção: ").strip()
+        if op == "1":
+            criancas = _adicionar_perfil_sensorial(criancas)
+        elif op == "2":
+            resp, criancas = _editar_informacoes(resp, criancas)
+        elif op == "3":
+            criancas = _excluir_crianca(resp, criancas)
+        elif op == "0":
+            break
+        else:
+            print("Opção inválida.\n")
+
+    return criancas
+
+
+def _buscar_crianca_por_id_parcial(criancas: list[Crianca], parcial: str) -> Crianca | None:
+    parcial = parcial.lower()
+    for c in criancas:
+        if c.id.lower().startswith(parcial) or c.id[:8].lower().startswith(parcial):
+            return c
+    return None
+
+
+def _adicionar_perfil_sensorial(criancas: list[Crianca]) -> list[Crianca]:
+    if not criancas:
+        print("Nenhuma criança cadastrada.\n")
+        return criancas
+
+    print("\n=== Adicionar/Atualizar Perfil Sensorial ===")
+    print("IDs disponíveis:")
+    for c in criancas:
+        print(f"  [{c.id[:8]}] {c.nome}")
+
+    id_parcial = input("Digite o ID (ou parte) da criança: ").strip().lower()
+    crianca = _buscar_crianca_por_id_parcial(criancas, id_parcial)
     if not crianca:
         print("Criança não encontrada.\n")
-        return
+        return criancas
 
-    lista = rotinas.get(cpf_crianca, [])
-    if not lista:
-        print(f"{crianca.nome} ainda não possui rotinas cadastradas.\n")
-        return
+    print(f"\nPreenchendo perfil sensorial para: {crianca.nome}")
+    print("(Enter para manter o valor atual)")
 
-    print(f"\nRotinas de {crianca.nome}:")
-    for i, rotina in enumerate(lista, start=1):
-        print(f"{i}. {rotina.nome} | recorrência: {rotina.tipo_recorrencia.value} | itens: {len(rotina.itens)}")
-    print()
+    ps = crianca.perfil_sensorial or PerfilSensorial()
+
+    resp_ts = input(f"Tátil — sensibilidades [{ps.tatil_sensibilidades or ''}]: ").strip()
+    if resp_ts:
+        ps.tatil_sensibilidades = resp_ts
+    resp_tp = input(f"Tátil — preferências [{ps.tatil_preferencias or ''}]: ").strip()
+    if resp_tp:
+        ps.tatil_preferencias = resp_tp
+    resp_as = input(f"Auditivo — sensibilidades [{ps.auditivo_sensibilidades or ''}]: ").strip()
+    if resp_as:
+        ps.auditivo_sensibilidades = resp_as
+    resp_ap = input(f"Auditivo — preferências [{ps.auditivo_preferencias or ''}]: ").strip()
+    if resp_ap:
+        ps.auditivo_preferencias = resp_ap
+    resp_vs = input(f"Visual — sensibilidades [{ps.visual_sensibilidades or ''}]: ").strip()
+    if resp_vs:
+        ps.visual_sensibilidades = resp_vs
+    resp_vp = input(f"Visual — preferências [{ps.visual_preferencias or ''}]: ").strip()
+    if resp_vp:
+        ps.visual_preferencias = resp_vp
+
+    crianca.perfil_sensorial = ps
+    repository.salvar_crianca(crianca)
+    print(f"\u2714 Perfil sensorial de {crianca.nome} atualizado.\n")
+    return criancas
 
 
-def selecionar_rotina_da_crianca(cpf_crianca: str) -> Rotina | None:
-    lista = rotinas.get(cpf_crianca, [])
-    if not lista:
+def _editar_informacoes(resp: Responsavel, criancas: list[Crianca]) -> tuple:
+    print("\n=== Editar Informações ===")
+    print("  1. Editar dados do responsável")
+    print("  2. Editar dados de uma criança")
+    print("  0. Voltar")
+
+    op = input("Opção: ").strip()
+    if op == "1":
+        resp = _editar_responsavel(resp)
+    elif op == "2":
+        criancas = _editar_crianca(criancas)
+    return resp, criancas
+
+
+def _editar_responsavel(resp: Responsavel) -> Responsavel:
+    print(f"\nEditando dados de {resp.nome}")
+    print("(Enter para manter o valor atual)")
+
+    novo_nome = input(f"Nome [{resp.nome}]: ").strip() or resp.nome
+    novo_email = input(f"E-mail [{resp.email or ''}]: ").strip() or resp.email
+    novo_tel = input(f"Telefone [{resp.telefone or ''}]: ").strip() or resp.telefone
+    novo_tipo = input(f"Tipo [{resp.tipo_responsavel}]: ").strip() or resp.tipo_responsavel
+    novo_end = input(f"Endereço [{resp.endereco or ''}]: ").strip()
+
+    resp.nome = novo_nome
+    resp.email = novo_email
+    resp.telefone = novo_tel
+    resp.tipo_responsavel = novo_tipo
+    resp.endereco = novo_end or resp.endereco or None
+
+    repository.salvar_responsavel(resp)
+    print("\u2714 Dados do responsável atualizados.\n")
+    return resp
+
+
+def _editar_crianca(criancas: list[Crianca]) -> list[Crianca]:
+    if not criancas:
+        print("Nenhuma criança cadastrada.\n")
+        return criancas
+
+    print("\nIDs disponíveis:")
+    for c in criancas:
+        print(f"  [{c.id[:8]}] {c.nome}")
+
+    id_parcial = input("Digite o ID (ou parte) da criança: ").strip().lower()
+    crianca = _buscar_crianca_por_id_parcial(criancas, id_parcial)
+    if not crianca:
+        print("Criança não encontrada.\n")
+        return criancas
+
+    print(f"\nEditando dados de {crianca.nome}")
+    print("(Enter para manter o valor atual)")
+
+    novo_nome = input(f"Nome [{crianca.nome}]: ").strip() or crianca.nome
+
+    dn_str = crianca.data_nascimento.strftime("%d/%m/%Y") if crianca.data_nascimento else ""
+    nova_dn_str = input(f"Data de nascimento [{dn_str}]: ").strip()
+    if nova_dn_str:
+        try:
+            dia, mes, ano = map(int, nova_dn_str.split("/"))
+            crianca.data_nascimento = date(ano, mes, dia)
+        except Exception:
+            print("Data inválida, mantendo anterior.")
+
+    novo_nivel = input(f"Nível de suporte [{crianca.nivel_suporte}] (baixo/moderado/alto): ").strip().lower()
+    if novo_nivel in ("baixo", "moderado", "alto"):
+        crianca.nivel_suporte = novo_nivel
+    elif novo_nivel:
+        print("Nível inválido, mantendo anterior.")
+
+    crianca.nome = novo_nome
+    repository.salvar_crianca(crianca)
+    print(f"\u2714 Dados de {crianca.nome} atualizados.\n")
+    return criancas
+
+
+def _excluir_crianca(resp: Responsavel, criancas: list[Crianca]) -> list[Crianca]:
+    if not criancas:
+        print("Nenhuma criança cadastrada.\n")
+        return criancas
+
+    print("\n=== Excluir Criança ===")
+    print("IDs disponíveis:")
+    for c in criancas:
+        print(f"  [{c.id[:8]}] {c.nome}")
+
+    id_parcial = input("Digite o ID (ou parte) da criança: ").strip().lower()
+    crianca = _buscar_crianca_por_id_parcial(criancas, id_parcial)
+    if not crianca:
+        print("Criança não encontrada.\n")
+        return criancas
+
+    confirmacao = input(f"Confirmar exclusão de '{crianca.nome}'? (s/n): ").strip().lower()
+    if confirmacao == "s":
+        repository.excluir_crianca(crianca.id)
+        criancas = [c for c in criancas if c.id != crianca.id]
+        try:
+            resp.remover_crianca_por_id(crianca.id)
+        except Exception:
+            pass
+        print(f"\u2714 Criança {crianca.nome} excluída.\n")
+    else:
+        print("Exclusão cancelada.\n")
+
+    return criancas
+
+
+# ══════════════════════════════════════════════════════════
+# Calendário
+# ══════════════════════════════════════════════════════════
+
+def tela_calendario(criancas: list[Crianca]):
+    eventos = repository.carregar_eventos()
+
+    while True:
+        separador()
+        print("=== Calendário ===")
+        separador()
+
+        ids_criancas = {c.id for c in criancas}
+        eventos_filtrados = [e for e in eventos if e.crianca_id in ids_criancas]
+
+        if eventos_filtrados:
+            print("Eventos agendados:")
+            for e in sorted(eventos_filtrados, key=lambda x: x.data):
+                nome_crianca = next((c.nome for c in criancas if c.id == e.crianca_id), e.crianca_id[:8])
+                linha = f"  [{e.id[:8]}] {e.data.strftime('%d/%m/%Y')} — {e.titulo}  |  {nome_crianca}"
+                if e.descricao:
+                    linha += f"  |  {e.descricao}"
+                print(linha)
+        else:
+            print("Nenhum evento cadastrado.")
+
+        print()
+        print("  1. Adicionar evento")
+        print("  2. Excluir evento")
+        print("  0. Voltar")
+        separador()
+
+        op = input("Opção: ").strip()
+        if op == "1":
+            novo = _adicionar_evento(criancas)
+            if novo:
+                eventos.append(novo)
+        elif op == "2":
+            eventos = _excluir_evento(eventos, criancas)
+        elif op == "0":
+            break
+        else:
+            print("Opção inválida.\n")
+
+
+def _adicionar_evento(criancas: list[Crianca]) -> Evento | None:
+    print("\n=== Adicionar Evento ===")
+    if not criancas:
+        print("Nenhuma criança cadastrada.\n")
         return None
 
-    print("\nRotinas cadastradas:")
-    for i, rotina in enumerate(lista, start=1):
-        print(f"{i}. {rotina.nome} ({rotina.tipo_recorrencia.value})")
+    print("Crianças disponíveis:")
+    for c in criancas:
+        print(f"  [{c.id[:8]}] {c.nome}")
 
-    idx = input_int("Escolha o número da rotina", min_val=1, max_val=len(lista))
-    return lista[idx - 1]
-
-
-def adicionar_item_em_rotina():
-    print("\n=== Adicionar Item em Rotina ===")
-    cpf_crianca = input_nao_vazio("CPF da criança: ")
-
-    crianca, _ = buscar_crianca_por_cpf(cpf_crianca)
+    id_parcial = input("ID da criança: ").strip().lower()
+    crianca = _buscar_crianca_por_id_parcial(criancas, id_parcial)
     if not crianca:
         print("Criança não encontrada.\n")
-        return
+        return None
 
-    rotina = selecionar_rotina_da_crianca(cpf_crianca)
-    if not rotina:
-        print("Nenhuma rotina encontrada para essa criança.\n")
-        return
+    titulo = input("Título do evento: ").strip()
+    if not titulo:
+        print("Título obrigatório.\n")
+        return None
 
-    nome = input_nao_vazio("Nome do item: ")
-    descricao = input("Descrição (opcional): ").strip() or None
-
-    while True:
-        hi = input_time_opcional("Horário de início (HH:MM, opcional): ")
-        hf = input_time_opcional("Horário de fim (HH:MM, opcional): ")
+    data_evento = None
+    while data_evento is None:
+        data_str = input("Data do evento (DD/MM/AAAA): ").strip()
         try:
-            item = rotina.cadastrar_item_automatico(
-                nome=nome,
-                descricao=descricao,
-                horario_inicio=hi,
-                horario_fim=hf,
-            )
-            print(f"Item '{item.nome}' adicionado à rotina '{rotina.nome}' com ordem {item.ordem}.\n")
-            break
-        except Exception as e:
-            print(f"Erro ao adicionar item: {e}\n")
+            dia, mes, ano = map(int, data_str.split("/"))
+            data_evento = date(ano, mes, dia)
+        except Exception:
+            print("Data inválida. Use DD/MM/AAAA.")
+
+    descricao = input("Descrição (opcional): ").strip()
+
+    evento = Evento(
+        titulo=titulo,
+        crianca_id=crianca.id,
+        data=data_evento,
+        descricao=descricao,
+    )
+    repository.salvar_evento(evento)
+    print(f"\u2714 Evento '{titulo}' adicionado.\n")
+    return evento
 
 
-def visualizar_itens_da_rotina():
-    print("\n=== Visualizar Itens da Rotina ===")
-    cpf_crianca = input_nao_vazio("CPF da criança: ")
+def _excluir_evento(eventos: list[Evento], criancas: list[Crianca]) -> list[Evento]:
+    ids_criancas = {c.id for c in criancas}
+    eventos_filtrados = [e for e in eventos if e.crianca_id in ids_criancas]
 
-    crianca, _ = buscar_crianca_por_cpf(cpf_crianca)
-    if not crianca:
-        print("Criança não encontrada.\n")
-        return
+    if not eventos_filtrados:
+        print("Nenhum evento para excluir.\n")
+        return eventos
 
-    rotina = selecionar_rotina_da_crianca(cpf_crianca)
-    if not rotina:
-        print("Nenhuma rotina encontrada.\n")
-        return
+    print("\nEventos disponíveis:")
+    for e in eventos_filtrados:
+        print(f"  [{e.id[:8]}] {e.data.strftime('%d/%m/%Y')} — {e.titulo}")
 
-    if not rotina.itens:
-        print("Essa rotina não possui itens.\n")
-        return
+    id_parcial = input("ID do evento: ").strip().lower()
+    evento = next(
+        (e for e in eventos_filtrados
+         if e.id.lower().startswith(id_parcial) or e.id[:8].lower().startswith(id_parcial)),
+        None
+    )
+    if not evento:
+        print("Evento não encontrado.\n")
+        return eventos
 
-    print(f"\nItens da rotina '{rotina.nome}':")
-    for item in rotina.itens:
-        inicio = item.horario_inicio.strftime("%H:%M") if item.horario_inicio else "--:--"
-        fim = item.horario_fim.strftime("%H:%M") if item.horario_fim else "--:--"
-        print(f"[{item.ordem}] {item.nome} | início: {inicio} | fim: {fim}")
-        if item.descricao:
-            print(f"    descrição: {item.descricao}")
-    print()
+    confirmacao = input(f"Confirmar exclusão de '{evento.titulo}'? (s/n): ").strip().lower()
+    if confirmacao == "s":
+        repository.excluir_evento(evento.id)
+        eventos = [e for e in eventos if e.id != evento.id]
+        print("\u2714 Evento excluído.\n")
+    else:
+        print("Cancelado.\n")
 
-
-def editar_ordem_item_da_rotina():
-    print("\n=== Editar Ordem de Item da Rotina ===")
-    cpf_crianca = input_nao_vazio("CPF da criança: ")
-
-    crianca, _ = buscar_crianca_por_cpf(cpf_crianca)
-    if not crianca:
-        print("Criança não encontrada.\n")
-        return
-
-    rotina = selecionar_rotina_da_crianca(cpf_crianca)
-    if not rotina:
-        print("Nenhuma rotina encontrada.\n")
-        return
-
-    if not rotina.itens:
-        print("A rotina não possui itens para reordenar.\n")
-        return
-
-    print(f"\nItens atuais da rotina '{rotina.nome}':")
-    for item in rotina.itens:
-        print(f"- ID: {item.id} | ordem: {item.ordem} | nome: {item.nome}")
-
-    item_id = input_nao_vazio("Digite o ID do item que deseja mover: ")
-    nova_ordem = input_int("Nova ordem", min_val=1)
-
-    try:
-        rotina.editar_ordem_item(item_id, nova_ordem)
-        print("Ordem atualizada com sucesso! Nova sequência:")
-        for item in rotina.itens:
-            print(f"  {item.ordem}. {item.nome}")
-        print()
-    except Exception as e:
-        print(f"Erro ao editar ordem: {e}\n")
+    return eventos
 
 
-# =========================
-# Menu principal
-# =========================
+# ══════════════════════════════════════════════════════════
+# Menu Inicial
+# ══════════════════════════════════════════════════════════
+
 def menu():
     while True:
-        print("=== Sistema Teapoio ===")
-        print("1. Cadastrar responsável")
+        separador("═")
+        print("       TE APOIO — Sistema de Gestão       ")
+        separador("═")
+        print("  1. Cadastro")
+        print("  2. Sair")
+        separador()
 
-        # só mostra opções relacionadas quando houver responsável
-        if responsaveis:
-            print("2. Adicionar criança")
-            print("3. Listar crianças")
-            print("4. Cadastrar rotina")
-            print("5. Listar rotinas da criança")
-            print("6. Adicionar item em rotina")
-            print("7. Visualizar itens da rotina")
-            print("8. Editar ordem de item da rotina")
+        op = input("Opção: ").strip()
 
-        print("0. Sair")
-        opcao = input("Escolha uma opção: ")
+        if op == "1":
+            resultado = fluxo_cadastro()
+            if resultado is not None:
+                resp, criancas = resultado
+                tela_sistema(resp, criancas)
 
-        if opcao == "1":
-            criar_responsavel()
-        elif opcao == "2" and responsaveis:
-            adicionar_crianca()
-        elif opcao == "3" and responsaveis:
-            listar_criancas()
-        elif opcao == "4" and responsaveis:
-            cadastrar_rotina()
-        elif opcao == "5" and responsaveis:
-            listar_rotinas_da_crianca()
-        elif opcao == "6" and responsaveis:
-            adicionar_item_em_rotina()
-        elif opcao == "7" and responsaveis:
-            visualizar_itens_da_rotina()
-        elif opcao == "8" and responsaveis:
-            editar_ordem_item_da_rotina()
-        elif opcao == "0":
-            print("Saindo...")
+        elif op == "2":
+            print("Até logo!")
             break
         else:
             print("Opção inválida.\n")
