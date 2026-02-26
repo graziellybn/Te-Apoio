@@ -3,11 +3,6 @@ from abc import ABC, abstractmethod
 import re
 
 
-def validar_email(email):
-    padrao = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    return re.match(padrao, email) is not None
-
-
 class Pessoa(ABC):
     """Classe base abstrata para Pessoa com atributos e métodos comuns."""
     
@@ -64,6 +59,11 @@ class Pessoa(ABC):
         return data
     
     @staticmethod
+    def _email_valido(email: str) -> bool:
+        padrao = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        return re.match(padrao, email) is not None
+
+    @staticmethod
     def _validar_email(email: str) -> str:
         """Valida se o email está em formato correto."""
         if not isinstance(email, str):
@@ -74,7 +74,7 @@ class Pessoa(ABC):
         if not email_limpo:
             raise ValueError("Email não pode ser vazio.")
         
-        if not validar_email(email_limpo):
+        if not Pessoa._email_valido(email_limpo):
             raise ValueError("Email inválido. Use o formato usuario@dominio.com")
         
         return email_limpo
