@@ -37,3 +37,5 @@ def test_crianca_maior_de_idade_invalida():
 def test_crianca_vinculo_invalido():
     with pytest.raises(ValueError, match="Criança deve estar vinculada a um Responsável válido"):
         Crianca("José Silva", "10/10/2010", None)
+
+        # Teste com string inválida para responsável
