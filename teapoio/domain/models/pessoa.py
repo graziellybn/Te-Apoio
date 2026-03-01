@@ -79,4 +79,4 @@ class Pessoa(ABC):
     
     @abstractmethod
     def obter_status_idade(self) -> str:
-        pass
+        pass    
