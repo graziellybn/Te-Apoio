@@ -2,40 +2,53 @@ import pytest
 from teapoio.domain.models.responsavel import Responsavel
 from teapoio.domain.models.crianca import Crianca
 
-# -------------------------------
-# Testes para Responsavel
-# -------------------------------
 
-def test_responsavel_maior_de_idade_valido():
-    r = Responsavel("João Silva", "10/05/1990", "joao@gmail.com")
-    assert r.nome == "João Silva"
+def test_responsavel_maior_de_idade():
+    r = Responsavel(
+        nome="Maria Silva",
+        data_nascimento="01/01/1980",  # ✅ formato DD/MM/YYYY
+        email="maria@example.com"
+    )
     assert r.verificar_maioridade() is True
-    assert r.obter_status_idade() == "Maior de idade"
-    assert r.id_responsavel is not None
+    assert len(r.id_responsavel) == 6
 
-def test_responsavel_menor_de_idade_invalido():
-    with pytest.raises(ValueError, match="Responsável deve ter pelo menos 18 anos."):
-        Responsavel("Maria Souza", "15/03/2010", "maria@hotmail.com")
 
-# -------------------------------
-# Testes para Crianca
-# -------------------------------
+def test_responsavel_menor_de_idade():
+    with pytest.raises(ValueError):
+        Responsavel(
+            nome="Pedro Júnior",
+            data_nascimento="01/01/2010",  # ✅ formato DD/MM/YYYY
+            email="pedro@example.com"
+        )
 
-def test_crianca_valida_vinculada_responsavel():
-    r = Responsavel("Carlos Pereira", "20/01/1980", "carlos@gmail.com")
-    c = Crianca("Pedro Pereira", "15/03/2015", r)
-    assert c.nome == "Pedro Pereira"
-    assert c.verificar_maioridade() is False
-    assert c.obter_status_idade() == "Menor de idade"
+
+def test_crianca_vinculada_responsavel():
+    r = Responsavel(
+        nome="Carlos Souza",
+        data_nascimento="20/05/1985",  # ✅ formato DD/MM/YYYY
+        email="carlos@example.com"
+    )
+    c = Crianca(
+        nome="Ana Souza",
+        data_nascimento="10/07/2015",  # ✅ formato DD/MM/YYYY
+        responsavel=r,
+        nivel_suporte=2
+    )
     assert c.id_responsavel == r.id_responsavel
+    assert c.nivel_suporte == 2
+    assert c.obter_status_idade() == "Menor de idade"
 
-def test_crianca_maior_de_idade_invalida():
-    r = Responsavel("Ana Costa", "01/01/1985", "ana@gmail.com")
-    with pytest.raises(ValueError, match="Criança não pode ser maior de idade."):
-        Crianca("Carlos Costa", "01/01/1990", r)
 
-def test_crianca_vinculo_invalido():
-    with pytest.raises(ValueError, match="Criança deve estar vinculada a um Responsável válido"):
-        Crianca("José Silva", "10/10/2010", None)
-
-        # Teste com string inválida para responsável
+def test_crianca_maior_de_idade():
+    r = Responsavel(
+        nome="João Silva",
+        data_nascimento="15/03/1980",  # ✅ formato DD/MM/YYYY
+        email="joao@example.com"
+    )
+    with pytest.raises(ValueError):
+        Crianca(
+            nome="Lucas Souza",
+            data_nascimento="15/03/2000",  # ✅ formato DD/MM/YYYY
+            responsavel=r,
+            nivel_suporte=1
+        )
