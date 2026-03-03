@@ -21,7 +21,7 @@ class Pessoa(ABC):
         
         padrao_nome = r"^[a-zA-ZáàâãéèêíïóôõöúçñÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s'-]+$"
         if not re.match(padrao_nome, nome_limpo):
-            raise ValueError("Nome deve conter apenas letras, espaços, hífens ou apóstrofos.")
+            raise ValueError("Nome inválido.")
         
         if len(nome_limpo.split()) < 2:
             raise ValueError("Nome deve conter pelo menos nome e sobrenome.")
