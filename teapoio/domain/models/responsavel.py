@@ -3,6 +3,8 @@ from teapoio.domain.models.pessoa import Pessoa
 import uuid
 
 class Responsavel(Pessoa):
+    """[SOLID: LSP] Implementacao concreta substituivel de Pessoa."""
+
     def __init__(self, nome, data_nascimento, email, id_responsavel=None, uuid_func=None):
         super().__init__(nome, data_nascimento, email)
 

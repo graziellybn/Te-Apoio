@@ -1,21 +1,70 @@
 from datetime import date, datetime
-from typing import List
+from typing import Iterable, List, Protocol
+
 from teapoio.domain.models.evolucao import Evolucao
 from teapoio.domain.models.item_rotina import ItemRotina
-# Não precisa importar Crianca ou Responsavel aqui se não for usar os objetos,
-# apenas o ID basta.
 
-class Rotina:
+
+class ResolvedorStatusRotina(Protocol):
+    """[SOLID: ISP, DIP] Contrato minimo para resolver codigo de status."""
+
+    def resolver(self, status_code: int | str) -> str:
+        """Retorna um status valido de ItemRotina para o codigo informado."""
+
+
+class CalculadoraEvolucaoRotina(Protocol):
+    """[SOLID: ISP, DIP] Contrato minimo para calcular evolucao da rotina."""
+
+    def calcular(self, itens: Iterable[ItemRotina]) -> Evolucao:
+        """Retorna uma Evolucao calculada para os itens informados."""
+
+
+class ResolvedorStatusPadrao:
+    """[SOLID: OCP, DIP] Implementacao padrao de resolucao de status."""
+
     MAPA_STATUS = {
         1: ItemRotina.STATUS_CONCLUIDO,
         2: ItemRotina.STATUS_NAO_REALIZADO,
         3: ItemRotina.STATUS_PENDENTE,
     }
 
-    def __init__(self, id_crianca, data_referencia=None):
+    def resolver(self, status_code: int | str) -> str:
+        if isinstance(status_code, str):
+            codigo_limpo = status_code.strip()
+            if not codigo_limpo.isdigit():
+                raise ValueError("Codigo de status deve ser numerico (1, 2 ou 3).")
+            status_code = int(codigo_limpo)
+        elif not isinstance(status_code, int):
+            raise TypeError("Codigo de status deve ser inteiro ou string numerica.")
+
+        if status_code not in self.MAPA_STATUS:
+            raise ValueError("Codigo de status invalido. Use 1, 2 ou 3.")
+
+        return self.MAPA_STATUS[status_code]
+
+
+class CalculadoraEvolucaoPadrao:
+    """[SOLID: OCP, DIP] Implementacao padrao de calculo de evolucao."""
+
+    def calcular(self, itens: Iterable[ItemRotina]) -> Evolucao:
+        return Evolucao.a_partir_itens(itens)
+
+
+class Rotina:
+    """[SOLID: SRP, OCP, DIP] Entidade de rotina com regras de dominio."""
+
+    def __init__(
+        self,
+        id_crianca,
+        data_referencia=None,
+        resolvedor_status: ResolvedorStatusRotina | None = None,
+        calculadora_evolucao: CalculadoraEvolucaoRotina | None = None,
+    ):
         self.id_crianca = self._validar_id_crianca(id_crianca)
         self.data_referencia = self._validar_data_referencia(data_referencia)
         self.itens: List[ItemRotina] = []
+        self._resolvedor_status = resolvedor_status or ResolvedorStatusPadrao()
+        self._calculadora_evolucao = calculadora_evolucao or CalculadoraEvolucaoPadrao()
 
     @staticmethod
     def _validar_id_crianca(id_crianca) -> str:
@@ -68,22 +117,6 @@ class Rotina:
         if not 0 <= indice < total_itens:
             raise IndexError("Indice invalido.")
 
-    @staticmethod
-    def _normalizar_status_code(status_code) -> int:
-        if isinstance(status_code, str):
-            codigo_limpo = status_code.strip()
-            if not codigo_limpo.isdigit():
-                raise ValueError("Codigo de status deve ser numerico (1, 2 ou 3).")
-            status_code = int(codigo_limpo)
-        elif isinstance(status_code, int):
-            pass
-        else:
-            raise TypeError("Codigo de status deve ser inteiro ou string numerica.")
-
-        if status_code not in Rotina.MAPA_STATUS:
-            raise ValueError("Codigo de status invalido. Use 1, 2 ou 3.")
-        return status_code
-
     def adicionar_item(self, item):
         if not isinstance(item, ItemRotina):
             raise TypeError("A rotina aceita apenas objetos do tipo ItemRotina.")
@@ -93,12 +126,10 @@ class Rotina:
 
         self.itens.append(item)
         self.itens.sort(key=lambda item_rotina: item_rotina.horario)
-        print(f"Item '{item.nome}' adicionado com sucesso!")
 
     def remover_item(self, indice):
         self._validar_indice(indice, len(self.itens))
-        removido = self.itens.pop(indice)
-        print(f"Item '{removido.nome}' removido.")
+        self.itens.pop(indice)
 
     def editar_item(self, indice, novo_nome, novo_horario):
         self._validar_indice(indice, len(self.itens))
@@ -109,47 +140,20 @@ class Rotina:
 
         self.itens[indice].atualizar(novo_nome, novo_horario)
         self.itens.sort(key=lambda item_rotina: item_rotina.horario)
-        print("Item atualizado com sucesso.")
 
     def marcar_status(self, indice, status_code):
         self._validar_indice(indice, len(self.itens))
-        codigo = self._normalizar_status_code(status_code)
-
-        self.itens[indice].status = self.MAPA_STATUS[codigo]
-        print(f"Status alterado para: {self.itens[indice].status}")
+        self.itens[indice].status = self._resolvedor_status.resolver(status_code)
 
     def calcular_evolucao(self):
         return self.obter_evolucao().percentual_concluido
 
     def obter_evolucao(self) -> Evolucao:
-        return Evolucao.a_partir_itens(self.itens)
+        return self._calculadora_evolucao.calcular(self.itens)
 
     def obter_resumo_evolucao(self):
         return self.obter_evolucao().to_dict()
 
-    def exibir_rotina(self, nome_crianca_display=None):
-        identificacao = nome_crianca_display if nome_crianca_display else f"ID {self.id_crianca}"
-        
-        print(f"\n--- Rotina de {identificacao} ({self.data_formatada}) ---")
-        
-        if not self.itens:
-            print("Nenhum item cadastrado.")
-        else:
-            for i, item in enumerate(self.itens):
-                print(f"{i + 1}. {item}") 
-
-            resumo = self.obter_resumo_evolucao()
-            print(
-                f"\n[EVOLUCAO DO DIA]: {resumo['percentual_concluido']:.1f}% concluido "
-                f"({resumo['concluidos']}/{resumo['total_itens']})"
-            )
-            print(
-                f"[STATUS] Pendentes: {resumo['pendentes']} | "
-                f"Nao realizados: {resumo['nao_realizados']}"
-            )
-        print("-" * 30)
-
-# Função auxiliar mantida igual
 def obter_sugestoes_tea():
     return [
         {"nome": "Escovar os dentes", "cat": "Higiene"},
@@ -159,3 +163,4 @@ def obter_sugestoes_tea():
         {"nome": "Banho e Pijama", "cat": "Higiene"},
         {"nome": "História de dormir", "cat": "Sono"}
     ]
+

@@ -6,6 +6,8 @@ from teapoio.domain.models.item_rotina import ItemRotina
 
 @dataclass(frozen=True)
 class Evolucao:
+	"""[SOLID: SRP] Value object para indicadores de progresso da rotina."""
+
 	total_itens: int
 	concluidos: int
 	nao_realizados: int

@@ -67,4 +67,19 @@ def test_exibir_mes_retorna_texto_do_calendario():
     assert "Março" in texto_mes
     assert "dom seg ter qua qui sex sab" in texto_mes
 
+
+def test_calendario_aceita_fabrica_rotina_customizada():
+    class FabricaFake:
+        def criar(self, id_crianca, data_referencia):
+            return {"id": str(id_crianca), "data": data_referencia}
+
+    calendario = CalendarioRotina(fabrica_rotina=FabricaFake())
+    hoje = date.today()
+    calendario.selecionar_data(hoje.day, hoje.month, hoje.year)
+
+    rotina = calendario.criar_rotina_para_data("123456")
+
+    assert rotina["id"] == "123456"
+    assert rotina["data"] == hoje
+
     

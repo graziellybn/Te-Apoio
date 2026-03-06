@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import re
 
 class Pessoa(ABC):
-    """Classe base abstrata para Pessoa com atributos e métodos comuns."""
+    """[SOLID: LSP, ISP] Classe base abstrata para tipos de pessoa."""
     
     def __init__(self, nome: str, data_nascimento: str, email: str = None):
         self.nome = self._validar_nome(nome)

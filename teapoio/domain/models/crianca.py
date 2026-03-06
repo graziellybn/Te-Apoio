@@ -4,6 +4,8 @@ from teapoio.domain.models.pessoa import Pessoa
 from teapoio.domain.models.responsavel import Responsavel
 
 class Crianca(Pessoa):
+    """[SOLID: LSP] Implementacao concreta substituivel de Pessoa."""
+
     NIVEIS_SUPORTE_PERMITIDOS = {1, 2, 3}
 
     def __init__(self, nome: str, data_nascimento: date, responsavel: Responsavel | str,

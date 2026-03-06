@@ -1,10 +1,30 @@
 import calendar
 from datetime import date
+from typing import Protocol, TYPE_CHECKING
 
-from teapoio.domain.models.rotina import Rotina
+if TYPE_CHECKING:
+	from teapoio.domain.models.rotina import Rotina
+
+
+class FabricaRotina(Protocol):
+	"""[SOLID: ISP, DIP] Contrato minimo para criar rotinas por data."""
+
+	def criar(self, id_crianca: str | int, data_referencia: date) -> "Rotina":
+		"""Cria uma rotina para a crianca na data informada."""
+
+
+class FabricaRotinaPadrao:
+	"""[SOLID: OCP, DIP] Fabrica padrao desacoplada de calendario."""
+
+	def criar(self, id_crianca: str | int, data_referencia: date) -> "Rotina":
+		from teapoio.domain.models.rotina import Rotina
+
+		return Rotina(id_crianca=id_crianca, data_referencia=data_referencia)
 
 
 class CalendarioRotina:
+	"""[SOLID: SRP, DIP] Responsavel por selecao/validacao de datas de rotina."""
+
 	MESES_PT_BR = {
 		1: "janeiro",
 		2: "fevereiro",
@@ -21,8 +41,13 @@ class CalendarioRotina:
 	}
 	CABECALHO_DIAS = "dom seg ter qua qui sex sab"
 
-	def __init__(self, data_inicial: date | None = None) -> None:
+	def __init__(
+		self,
+		data_inicial: date | None = None,
+		fabrica_rotina: FabricaRotina | None = None,
+	) -> None:
 		self._data_selecionada = data_inicial or date.today()
+		self._fabrica_rotina = fabrica_rotina or FabricaRotinaPadrao()
 
 	@property
 	def data_selecionada(self) -> date:
@@ -60,8 +85,11 @@ class CalendarioRotina:
 
 		return "\n".join(linhas)
 
-	def criar_rotina_para_data(self, id_crianca: str | int) -> Rotina:
-		return Rotina(id_crianca=id_crianca, data_referencia=self._data_selecionada)
+	def criar_rotina_para_data(self, id_crianca: str | int) -> "Rotina":
+		return self._fabrica_rotina.criar(
+			id_crianca=id_crianca,
+			data_referencia=self._data_selecionada,
+		)
 
 	@staticmethod
 	def _validar_partes_data(dia: int, mes: int, ano: int) -> None:

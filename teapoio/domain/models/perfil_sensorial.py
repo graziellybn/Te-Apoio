@@ -6,6 +6,8 @@ from teapoio.domain.models.pessoa import Pessoa
 
 
 class PerfilSensorial(Pessoa):
+	"""[SOLID: LSP] Implementacao concreta substituivel de Pessoa."""
+
 	def __init__(
 		self,
 		id_crianca: str,

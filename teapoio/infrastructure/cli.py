@@ -7,22 +7,37 @@ from typing import List
 # --- SEUS IMPORTS EXISTENTES ---
 from teapoio.domain.models.Perfil import Perfil
 from teapoio.domain.models.crianca import Crianca
-from teapoio.domain.models.perfil_sensorial import PerfilSensorial
 from teapoio.domain.models.responsavel import Responsavel
+from teapoio.application.services.servico_cadastro import ServicoCadastro
+from teapoio.application.services.servico_monitoramento import ServicoMonitoramento
+from teapoio.application.services.servico_perfil import ServicoPerfil
+from teapoio.application.services.servico_rotinas import ServicoRotinas
 
 # --- NOVOS IMPORTS (Certifique-se que os arquivos estão na pasta correta) ---
 # Ajuste o caminho 'teapoio.domain.models...' conforme sua estrutura de pastas real
 from teapoio.domain.models.rotina import Rotina, obter_sugestoes_tea
-from teapoio.domain.models.item_rotina import ItemRotina
 from teapoio.domain.models.calendario import CalendarioRotina
 
 
 class TeApoioCLI:
-    def __init__(self) -> None:
+    """[SOLID: SRP, DIP] Camada de interface/entrada de dados do sistema."""
+
+    def __init__(
+        self,
+        servico_cadastro: ServicoCadastro | None = None,
+        servico_monitoramento: ServicoMonitoramento | None = None,
+        servico_perfil: ServicoPerfil | None = None,
+        servico_rotinas: ServicoRotinas | None = None,
+        calendario: CalendarioRotina | None = None,
+    ) -> None:
         self._responsaveis: List[Responsavel] = []
         self._criancas: List[Crianca] = []
         self._rotinas: List[Rotina] = []
-        self._calendario = CalendarioRotina()
+        self._servico_cadastro = servico_cadastro or ServicoCadastro()
+        self._servico_monitoramento = servico_monitoramento or ServicoMonitoramento()
+        self._servico_perfil = servico_perfil or ServicoPerfil()
+        self._servico_rotinas = servico_rotinas or ServicoRotinas()
+        self._calendario = calendario or CalendarioRotina()
         self._perfil: Perfil | None = None
 
     def executar(self) -> None:
@@ -122,9 +137,13 @@ class TeApoioCLI:
             email = resultado
             etapa += 1
 
-        responsavel = Responsavel(nome, data_nascimento, email)
+        responsavel, perfil = self._servico_cadastro.cadastrar_responsavel(
+            nome=nome,
+            data_nascimento=data_nascimento,
+            email=email,
+        )
         self._responsaveis.append(responsavel)
-        self._perfil = Perfil(responsavel=responsavel)
+        self._perfil = perfil
         print(
             f"\nOlá, {responsavel.nome}! "
             f"Seu cadastro foi validado. "
@@ -221,13 +240,9 @@ class TeApoioCLI:
             return
 
         id_informado = input("Digite seu id de validação: ").strip()
-        cadastro = next(
-            (
-                responsavel
-                for responsavel in self._responsaveis
-                if responsavel.id_responsavel == id_informado
-            ),
-            None,
+        cadastro = self._servico_cadastro.validar_responsavel_por_id(
+            self._responsaveis,
+            id_informado,
         )
 
         if cadastro is None:
@@ -273,16 +288,16 @@ class TeApoioCLI:
             nivel_suporte = resultado
             etapa += 1
 
-        crianca = Crianca(
+        crianca = self._servico_cadastro.cadastrar_crianca(
+            responsavel=responsavel,
             nome=nome,
             data_nascimento=data_nascimento,
-            responsavel=responsavel,
             nivel_suporte=nivel_suporte,
         )
         self._criancas.append(crianca)
         if self._perfil is None:
             self._perfil = Perfil(responsavel=responsavel)
-        self._perfil.adicionar_crianca(crianca)
+        self._servico_perfil.vincular_crianca_ao_perfil(self._perfil, crianca)
         print(
             f"\nCriança cadastrada com sucesso. "
             f"ID da criança: ({crianca.id_crianca})"
@@ -352,23 +367,14 @@ class TeApoioCLI:
             indice = int(escolha) - 1
             if 0 <= indice < len(self._criancas):
                 crianca_selecionada = self._criancas[indice]
-                
-                rotina_atual = next(
-                    (
-                        r
-                        for r in self._rotinas
-                        if r.id_crianca == crianca_selecionada.id_crianca
-                        and r.data_referencia == data_base
-                    ),
-                    None,
+
+                rotina_atual, criada = self._servico_rotinas.obter_ou_criar_rotina(
+                    rotinas=self._rotinas,
+                    id_crianca=crianca_selecionada.id_crianca,
+                    data_referencia=data_base,
                 )
-                
-                if not rotina_atual:
-                    rotina_atual = Rotina(
-                        id_crianca=crianca_selecionada.id_crianca,
-                        data_referencia=data_base,
-                    )
-                    self._rotinas.append(rotina_atual)
+
+                if criada:
                     print(
                         f"Nova rotina criada para {crianca_selecionada.nome} em "
                         f"{data_base.strftime('%d/%m/%Y')}."
@@ -385,8 +391,7 @@ class TeApoioCLI:
         """Menu interno para manipular os itens da rotina."""
         while True:
             self._limpar_tela()
-            # Passa o nome da criança para exibir no título da rotina
-            rotina.exibir_rotina(nome_crianca_display=nome_crianca)
+            self._exibir_rotina(rotina, nome_crianca)
 
             print("\n[Ações da Rotina]")
             print("1. Adicionar tarefa")
@@ -406,8 +411,11 @@ class TeApoioCLI:
                     continue
 
                 try:
-                    novo_item = ItemRotina(nome_item, horario)
-                    rotina.adicionar_item(novo_item)
+                    self._servico_rotinas.adicionar_item(
+                        rotina=rotina,
+                        nome_item=nome_item,
+                        horario=horario,
+                    )
                     input("Tarefa adicionada! Enter para continuar...")
                 except (TypeError, ValueError) as erro:
                     print(f"Não foi possível adicionar a tarefa: {erro}")
@@ -419,7 +427,7 @@ class TeApoioCLI:
                     idx = int(idx_str) - 1
                     print("1 = Concluído | 2 = Não Realizado | 3 = Pendente")
                     status_code = input("Novo status: ").strip()
-                    rotina.marcar_status(idx, status_code)
+                    self._servico_rotinas.marcar_status(rotina, idx, status_code)
                     input("Status atualizado! Enter para continuar...")
                 except (TypeError, ValueError, IndexError) as erro:
                     print(f"Não foi possível atualizar o status: {erro}")
@@ -429,7 +437,7 @@ class TeApoioCLI:
                 idx_str = input("Número do item para remover: ").strip()
                 try:
                     idx = int(idx_str) - 1
-                    rotina.remover_item(idx)
+                    self._servico_rotinas.remover_item(rotina, idx)
                     input("Item removido! Enter para continuar...")
                 except (TypeError, ValueError, IndexError) as erro:
                     print(f"Não foi possível remover o item: {erro}")
@@ -445,6 +453,11 @@ class TeApoioCLI:
 
             elif opcao == "5":
                 break
+
+    def _exibir_rotina(self, rotina: Rotina, nome_crianca: str) -> None:
+        """[SOLID: SRP] Responsavel por apresentar rotina no terminal."""
+        for linha in self._servico_monitoramento.gerar_linhas_painel_rotina(rotina, nome_crianca):
+            print(linha)
 
     # ------------------------------------------------------------------
 
@@ -536,7 +549,7 @@ class TeApoioCLI:
         if id_crianca == "0":
             return
 
-        crianca = self._perfil.buscar_crianca_por_id(id_crianca)
+        crianca = self._servico_perfil.buscar_crianca_no_perfil(self._perfil, id_crianca)
         if crianca is None:
             print("Erro: criança não encontrada para o ID informado.")
             return
@@ -575,17 +588,15 @@ class TeApoioCLI:
         seletividade_alimentar = respostas[3] or []
         estrategias_regulacao = respostas[4] or []
 
-        perfil_sensorial = PerfilSensorial(
-            id_crianca=crianca.id_crianca,
-            nome=crianca.nome,
-            data_nascimento=crianca.data_nascimento.strftime("%d/%m/%Y"),
+        self._servico_perfil.criar_ou_atualizar_perfil_sensorial(
+            perfil=self._perfil,
+            crianca=crianca,
             hipersensibilidades=hipersensibilidades,
             hipossensibilidades=hipossensibilidades,
             hiperfocos=hiperfocos,
             seletividade_alimentar=seletividade_alimentar,
             estrategias_regulacao=estrategias_regulacao,
         )
-        self._perfil.adicionar_perfil_sensorial(perfil_sensorial)
         print("Perfil sensorial cadastrado com sucesso.")
 
     def _editar_perfil_sensorial_crianca(self) -> None:
@@ -601,7 +612,7 @@ class TeApoioCLI:
         if id_crianca == "0":
             return
 
-        crianca = self._perfil.buscar_crianca_por_id(id_crianca)
+        crianca = self._servico_perfil.buscar_crianca_no_perfil(self._perfil, id_crianca)
         if crianca is None:
             print("Erro: criança não encontrada para o ID informado.")
             return
@@ -647,17 +658,15 @@ class TeApoioCLI:
         seletividade_alimentar = respostas[3] or []
         estrategias_regulacao = respostas[4] or []
 
-        perfil_editado = PerfilSensorial(
-            id_crianca=crianca.id_crianca,
-            nome=crianca.nome,
-            data_nascimento=crianca.data_nascimento.strftime("%d/%m/%Y"),
+        self._servico_perfil.criar_ou_atualizar_perfil_sensorial(
+            perfil=self._perfil,
+            crianca=crianca,
             hipersensibilidades=hipersensibilidades,
             hipossensibilidades=hipossensibilidades,
             hiperfocos=hiperfocos,
             seletividade_alimentar=seletividade_alimentar,
             estrategias_regulacao=estrategias_regulacao,
         )
-        self._perfil.adicionar_perfil_sensorial(perfil_editado)
         print("Perfil sensorial atualizado com sucesso.")
 
     def _adicionar_crianca_no_perfil(self) -> None:
@@ -694,18 +703,12 @@ class TeApoioCLI:
         email = input(f"Novo email (Enter para manter '{responsavel.email}'): ").strip()
 
         try:
-            if nome:
-                responsavel.nome = Responsavel._validar_nome(nome)
-            if data:
-                data_obj = Responsavel._validar_data_nascimento(data)
-                idade = datetime.now().year - data_obj.year
-                if (datetime.now().month, datetime.now().day) < (data_obj.month, data_obj.day):
-                    idade -= 1
-                if idade < 18:
-                    raise ValueError("Responsável deve ter pelo menos 18 anos.")
-                responsavel.data_nascimento = data_obj
-            if email:
-                responsavel.email = Responsavel._validar_email(email)
+            self._servico_cadastro.editar_responsavel(
+                responsavel=responsavel,
+                nome=nome,
+                data_nascimento=data,
+                email=email,
+            )
         except ValueError as error:
             print(f"Erro: {error}")
             return
@@ -731,18 +734,12 @@ class TeApoioCLI:
         nivel = input(f"Novo nível de suporte (1, 2 ou 3) (Enter para manter '{crianca.nivel_suporte}'): ").strip()
 
         try:
-            if nome:
-                crianca.nome = Responsavel._validar_nome(nome)
-            if data:
-                data_obj = Responsavel._validar_data_nascimento(data)
-                idade = datetime.now().year - data_obj.year
-                if (datetime.now().month, datetime.now().day) < (data_obj.month, data_obj.day):
-                    idade -= 1
-                if idade >= 18:
-                    raise ValueError("Criança não pode ser maior de idade.")
-                crianca.data_nascimento = data_obj
-            if nivel:
-                crianca.nivel_suporte = int(nivel)
+            self._servico_cadastro.editar_crianca(
+                crianca=crianca,
+                nome=nome,
+                data_nascimento=data,
+                nivel_suporte=nivel,
+            )
         except (ValueError, TypeError) as error:
             print(f"Erro: {error}")
             return
@@ -768,12 +765,12 @@ class TeApoioCLI:
             print("Exclusão cancelada.")
             return
 
-        self._criancas = [item for item in self._criancas if item.id_crianca != id_crianca]
-        # Remove a rotina associada também
-        self._rotinas = [r for r in self._rotinas if r.id_crianca != id_crianca]
-        
-        if self._perfil is not None:
-            self._perfil.remover_crianca(id_crianca)
+        self._criancas, self._rotinas = self._servico_perfil.excluir_crianca(
+            criancas=self._criancas,
+            rotinas=self._rotinas,
+            perfil=self._perfil,
+            id_crianca=id_crianca,
+        )
         print("Criança excluída com sucesso.")
 
     @staticmethod

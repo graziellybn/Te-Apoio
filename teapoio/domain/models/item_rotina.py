@@ -2,6 +2,8 @@ import re
 
 
 class ItemRotina:
+    """[SOLID: SRP] Entidade focada apenas em regras do item da rotina."""
+
     STATUS_PENDENTE = "Pendente"
     STATUS_CONCLUIDO = "Concluído"
     STATUS_NAO_REALIZADO = "Não Realizado"

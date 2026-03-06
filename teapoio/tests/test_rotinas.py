@@ -152,3 +152,27 @@ def test_rotina_obter_evolucao_retorna_objeto_evolucao():
 
 	assert isinstance(evolucao, Evolucao)
 	assert evolucao.total_itens == 1
+
+
+def test_rotina_aceita_resolvedor_status_customizado():
+	class ResolvedorSempreConcluido:
+		def resolver(self, status_code):
+			return ItemRotina.STATUS_CONCLUIDO
+
+	rotina = Rotina("123456", resolvedor_status=ResolvedorSempreConcluido())
+	rotina.adicionar_item(ItemRotina("Item 1", "08:00"))
+	rotina.marcar_status(0, "qualquer")
+
+	assert rotina.itens[0].status == ItemRotina.STATUS_CONCLUIDO
+
+
+def test_rotina_aceita_calculadora_evolucao_customizada():
+	class CalculadoraFixa:
+		def calcular(self, itens):
+			return Evolucao(total_itens=10, concluidos=7, nao_realizados=2, pendentes=1)
+
+	rotina = Rotina("123456", calculadora_evolucao=CalculadoraFixa())
+	rotina.adicionar_item(ItemRotina("Item 1", "08:00"))
+
+	assert rotina.calcular_evolucao() == 70.0
+	assert rotina.obter_resumo_evolucao()["concluidos"] == 7
