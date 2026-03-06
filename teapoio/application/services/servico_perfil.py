@@ -39,6 +39,22 @@ class ServicoPerfil:
         return perfil_sensorial
 
     @staticmethod
+    def sincronizar_dados_crianca_no_perfil_sensorial(
+        perfil: Perfil | None,
+        crianca: Crianca,
+    ) -> bool:
+        if perfil is None:
+            return False
+
+        perfil_sensorial = perfil.obter_perfil_sensorial(crianca.id_crianca)
+        if perfil_sensorial is None:
+            return False
+
+        perfil_sensorial.nome = crianca.nome
+        perfil_sensorial.data_nascimento = crianca.data_nascimento
+        return True
+
+    @staticmethod
     def excluir_crianca(
         criancas: list[Crianca],
         rotinas: list[Rotina],

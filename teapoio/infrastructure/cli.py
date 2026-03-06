@@ -11,7 +11,9 @@ from teapoio.domain.models.responsavel import Responsavel
 from teapoio.application.services.servico_cadastro import ServicoCadastro
 from teapoio.application.services.servico_monitoramento import ServicoMonitoramento
 from teapoio.application.services.servico_perfil import ServicoPerfil
+from teapoio.application.services.servico_relatorios import ServicoRelatorios
 from teapoio.application.services.servico_rotinas import ServicoRotinas
+from teapoio.infrastructure.persistence.Relatorio import RepositorioRelatorio
 
 # --- NOVOS IMPORTS (Certifique-se que os arquivos estão na pasta correta) ---
 # Ajuste o caminho 'teapoio.domain.models...' conforme sua estrutura de pastas real
@@ -27,18 +29,39 @@ class TeApoioCLI:
         servico_cadastro: ServicoCadastro | None = None,
         servico_monitoramento: ServicoMonitoramento | None = None,
         servico_perfil: ServicoPerfil | None = None,
+        servico_relatorios: ServicoRelatorios | None = None,
         servico_rotinas: ServicoRotinas | None = None,
         calendario: CalendarioRotina | None = None,
+        repositorio: RepositorioRelatorio | None = None,
     ) -> None:
-        self._responsaveis: List[Responsavel] = []
-        self._criancas: List[Crianca] = []
-        self._rotinas: List[Rotina] = []
+        repositorio_relatorios = repositorio or RepositorioRelatorio()
+        self._servico_relatorios = servico_relatorios or ServicoRelatorios(
+            repositorio=repositorio_relatorios
+        )
+        estado = self._servico_relatorios.carregar_estado_inicial()
+
+        self._responsaveis: List[Responsavel] = estado["responsaveis"]
+        self._criancas: List[Crianca] = estado["criancas"]
+        self._rotinas: List[Rotina] = estado["rotinas"]
         self._servico_cadastro = servico_cadastro or ServicoCadastro()
         self._servico_monitoramento = servico_monitoramento or ServicoMonitoramento()
         self._servico_perfil = servico_perfil or ServicoPerfil()
         self._servico_rotinas = servico_rotinas or ServicoRotinas()
-        self._calendario = calendario or CalendarioRotina()
-        self._perfil: Perfil | None = None
+        self._calendario = calendario or CalendarioRotina(
+            data_inicial=estado["data_calendario"]
+        )
+        self._perfil: Perfil | None = estado["perfil"]
+        # Sessao ativa deve ser iniciada apenas apos validacao por ID.
+        self._responsavel_logado: Responsavel | None = None
+
+    def _persistir_estado(self) -> None:
+        self._servico_relatorios.salvar_estado_atual(
+            responsaveis=self._responsaveis,
+            criancas=self._criancas,
+            rotinas=self._rotinas,
+            perfil=self._perfil,
+            data_calendario=self._calendario.data_selecionada,
+        )
 
     def executar(self) -> None:
         self._limpar_tela()
@@ -47,7 +70,7 @@ class TeApoioCLI:
             self._exibir_menu()
             opcao = input("Escolha uma opção: ").strip()
 
-            if self._cadastro_completo():
+            if self._sessao_autenticada():
                 if opcao == "1":
                     self._acessar_configuracoes_perfil()
                 elif opcao == "2":
@@ -57,8 +80,7 @@ class TeApoioCLI:
                     self._acessar_menu_rotinas()
                 # ------------------
                 elif opcao == "4":
-                    print("Encerrando TeApoio CLI.")
-                    break
+                    self._encerrar_sessao()
                 else:
                     self._limpar_tela()
                     print("Erro: opção inválida. Tente novamente.")
@@ -78,8 +100,10 @@ class TeApoioCLI:
 
     def _exibir_menu(self) -> None:
         print("\nMenu Principal")
-        if self._cadastro_completo():
-            responsavel = self._responsaveis[0]
+        if self._sessao_autenticada():
+            responsavel = self._responsavel_logado
+            if responsavel is None:
+                return
             print(
                 f"Olá, {responsavel.nome}!  "
                 f"SEU ID: >>> {responsavel.id_responsavel} <<<"
@@ -87,15 +111,44 @@ class TeApoioCLI:
             print("1. Acessar configurações de perfil")
             print("2. Acessar calendário")
             print("3. Acessar rotina")  # Nova opção
-            print("4. Sair")
+            print("4. Sair da conta")
             return
 
         print("1. Quero me cadastrar")
         print("2. Já sou cadastrado")
         print("3. Sair")
 
-    def _cadastro_completo(self) -> bool:
-        return len(self._responsaveis) > 0
+    def _sessao_autenticada(self) -> bool:
+        return self._responsavel_logado is not None
+
+    def _obter_criancas_do_responsavel(self, id_responsavel: str) -> list[Crianca]:
+        return [
+            crianca
+            for crianca in self._criancas
+            if crianca.id_responsavel == id_responsavel
+        ]
+
+    def _obter_criancas_do_responsavel_logado(self) -> list[Crianca]:
+        if self._responsavel_logado is None:
+            return []
+        return self._obter_criancas_do_responsavel(
+            self._responsavel_logado.id_responsavel
+        )
+
+    def _buscar_crianca_do_responsavel_logado(self, id_crianca: str) -> Crianca | None:
+        return next(
+            (
+                crianca
+                for crianca in self._obter_criancas_do_responsavel_logado()
+                if crianca.id_crianca == id_crianca
+            ),
+            None,
+        )
+
+    def _encerrar_sessao(self) -> None:
+        self._responsavel_logado = None
+        self._limpar_tela()
+        print("Sessao encerrada com sucesso.")
 
     # ... [MÉTODOS DE CADASTRO MANTIDOS IGUAIS] ...
     # (Pulei a repetição dos métodos _cadastrar_responsavel, _ler_nome_valido, etc.
@@ -144,6 +197,8 @@ class TeApoioCLI:
         )
         self._responsaveis.append(responsavel)
         self._perfil = perfil
+        self._responsavel_logado = responsavel
+        self._persistir_estado()
         print(
             f"\nOlá, {responsavel.nome}! "
             f"Seu cadastro foi validado. "
@@ -249,8 +304,16 @@ class TeApoioCLI:
             print("Erro: id não encontrado.")
             return
 
+        self._responsavel_logado = cadastro
+        if self._perfil is None:
+            self._perfil = Perfil(responsavel=cadastro)
+            self._persistir_estado()
+
         print(f"Cadastro validado com sucesso, {cadastro.nome}.")
-        self._cadastrar_crianca(cadastro)
+        if not self._obter_criancas_do_responsavel(cadastro.id_responsavel):
+            resposta = input("Nenhuma criança cadastrada. Deseja cadastrar agora? (S/N): ").strip().lower()
+            if resposta == "s":
+                self._cadastrar_crianca(cadastro)
 
     def _cadastrar_crianca(self, responsavel: Responsavel) -> None:
         self._limpar_tela()
@@ -298,6 +361,7 @@ class TeApoioCLI:
         if self._perfil is None:
             self._perfil = Perfil(responsavel=responsavel)
         self._servico_perfil.vincular_crianca_ao_perfil(self._perfil, crianca)
+        self._persistir_estado()
         print(
             f"\nCriança cadastrada com sucesso. "
             f"ID da criança: ({crianca.id_crianca})"
@@ -321,6 +385,7 @@ class TeApoioCLI:
                 self._selecionar_data_calendario()
             elif opcao == "2":
                 self._calendario.selecionar_hoje()
+                self._persistir_estado()
                 input("Data atualizada para hoje. Enter para continuar...")
             elif opcao == "3":
                 self._acessar_menu_rotinas(data_rotina=self._calendario.data_selecionada)
@@ -335,6 +400,7 @@ class TeApoioCLI:
             mes = int(input("Mes (1-12): ").strip())
             ano = int(input(f"Ano (somente {date.today().year}): ").strip())
             data_escolhida = self._calendario.selecionar_data(dia, mes, ano)
+            self._persistir_estado()
             print(f"Data selecionada: {data_escolhida.strftime('%d/%m/%Y')}")
         except (TypeError, ValueError) as erro:
             print(f"Nao foi possivel selecionar a data: {erro}")
@@ -346,15 +412,16 @@ class TeApoioCLI:
         """Gerencia o fluxo de selecionar uma criança e abrir sua rotina."""
         self._limpar_tela()
         data_base = data_rotina or self._calendario.data_selecionada
+        criancas_responsavel = self._obter_criancas_do_responsavel_logado()
         
-        if not self._criancas:
+        if not criancas_responsavel:
             print("\nVocê precisa cadastrar uma criança primeiro.")
             input("Pressione Enter para voltar...")
             return
 
         # Selecionar Criança
         print(f"\n--- Selecao de crianca para rotina ({data_base.strftime('%d/%m/%Y')}) ---")
-        for i, crianca in enumerate(self._criancas):
+        for i, crianca in enumerate(criancas_responsavel):
             print(f"{i + 1}. {crianca.nome} (ID: {crianca.id_crianca})")
         print("0. Voltar")
 
@@ -365,8 +432,8 @@ class TeApoioCLI:
 
         try:
             indice = int(escolha) - 1
-            if 0 <= indice < len(self._criancas):
-                crianca_selecionada = self._criancas[indice]
+            if 0 <= indice < len(criancas_responsavel):
+                crianca_selecionada = criancas_responsavel[indice]
 
                 rotina_atual, criada = self._servico_rotinas.obter_ou_criar_rotina(
                     rotinas=self._rotinas,
@@ -379,6 +446,7 @@ class TeApoioCLI:
                         f"Nova rotina criada para {crianca_selecionada.nome} em "
                         f"{data_base.strftime('%d/%m/%Y')}."
                     )
+                    self._persistir_estado()
                 
                 self._menu_operacoes_rotina(rotina_atual, crianca_selecionada.nome)
             else:
@@ -416,6 +484,7 @@ class TeApoioCLI:
                         nome_item=nome_item,
                         horario=horario,
                     )
+                    self._persistir_estado()
                     input("Tarefa adicionada! Enter para continuar...")
                 except (TypeError, ValueError) as erro:
                     print(f"Não foi possível adicionar a tarefa: {erro}")
@@ -428,6 +497,7 @@ class TeApoioCLI:
                     print("1 = Concluído | 2 = Não Realizado | 3 = Pendente")
                     status_code = input("Novo status: ").strip()
                     self._servico_rotinas.marcar_status(rotina, idx, status_code)
+                    self._persistir_estado()
                     input("Status atualizado! Enter para continuar...")
                 except (TypeError, ValueError, IndexError) as erro:
                     print(f"Não foi possível atualizar o status: {erro}")
@@ -438,6 +508,7 @@ class TeApoioCLI:
                 try:
                     idx = int(idx_str) - 1
                     self._servico_rotinas.remover_item(rotina, idx)
+                    self._persistir_estado()
                     input("Item removido! Enter para continuar...")
                 except (TypeError, ValueError, IndexError) as erro:
                     print(f"Não foi possível remover o item: {erro}")
@@ -499,11 +570,12 @@ class TeApoioCLI:
         self._adicionar_perfil_sensorial_crianca()
 
     def _mostrar_dados_cadastrados(self) -> None:
-        if not self._responsaveis:
+        if self._responsavel_logado is None:
             print("Erro: cadastro incompleto.")
             return
 
-        responsavel = self._responsaveis[0]
+        responsavel = self._responsavel_logado
+        criancas_responsavel = self._obter_criancas_do_responsavel_logado()
 
         print("\nINFORMAÇÕES DO PERFIL")
         print("")
@@ -513,11 +585,11 @@ class TeApoioCLI:
         print(f"- Email: {responsavel.email}")
         print(f"- ID do responsável: {responsavel.id_responsavel}")
 
-        if not self._criancas:
+        if not criancas_responsavel:
             print("\n[Criança]")
             print("- Nenhuma criança cadastrada.")
 
-        for crianca in self._criancas:
+        for crianca in criancas_responsavel:
             print("\n[Criança]")
             print(f"- Nome: {crianca.nome}")
             print(f"- Data de nascimento: {crianca.data_nascimento.strftime('%d/%m/%Y')}")
@@ -541,7 +613,7 @@ class TeApoioCLI:
             print("Erro: perfil do responsável não encontrado.")
             return
 
-        if not self._criancas:
+        if not self._obter_criancas_do_responsavel_logado():
             print("Não há crianças cadastradas.")
             return
 
@@ -549,7 +621,7 @@ class TeApoioCLI:
         if id_crianca == "0":
             return
 
-        crianca = self._servico_perfil.buscar_crianca_no_perfil(self._perfil, id_crianca)
+        crianca = self._buscar_crianca_do_responsavel_logado(id_crianca)
         if crianca is None:
             print("Erro: criança não encontrada para o ID informado.")
             return
@@ -597,6 +669,7 @@ class TeApoioCLI:
             seletividade_alimentar=seletividade_alimentar,
             estrategias_regulacao=estrategias_regulacao,
         )
+        self._persistir_estado()
         print("Perfil sensorial cadastrado com sucesso.")
 
     def _editar_perfil_sensorial_crianca(self) -> None:
@@ -604,7 +677,7 @@ class TeApoioCLI:
             print("Erro: perfil do responsável não encontrado.")
             return
 
-        if not self._criancas:
+        if not self._obter_criancas_do_responsavel_logado():
             print("Não há crianças cadastradas.")
             return
 
@@ -612,7 +685,7 @@ class TeApoioCLI:
         if id_crianca == "0":
             return
 
-        crianca = self._servico_perfil.buscar_crianca_no_perfil(self._perfil, id_crianca)
+        crianca = self._buscar_crianca_do_responsavel_logado(id_crianca)
         if crianca is None:
             print("Erro: criança não encontrada para o ID informado.")
             return
@@ -667,14 +740,15 @@ class TeApoioCLI:
             seletividade_alimentar=seletividade_alimentar,
             estrategias_regulacao=estrategias_regulacao,
         )
+        self._persistir_estado()
         print("Perfil sensorial atualizado com sucesso.")
 
     def _adicionar_crianca_no_perfil(self) -> None:
-        if not self._responsaveis:
+        if self._responsavel_logado is None:
             print("Erro: nenhum responsável cadastrado.")
             return
 
-        responsavel = self._responsaveis[0]
+        responsavel = self._responsavel_logado
         self._cadastrar_crianca(responsavel)
 
     def _editar_informacoes(self) -> None:
@@ -693,11 +767,11 @@ class TeApoioCLI:
             print("Erro: opção inválida.")
 
     def _editar_usuario(self) -> None:
-        if not self._responsaveis:
+        if self._responsavel_logado is None:
             print("Erro: nenhum responsável cadastrado.")
             return
 
-        responsavel = self._responsaveis[0]
+        responsavel = self._responsavel_logado
         nome = input(f"Novo nome (Enter para manter '{responsavel.nome}'): ").strip()
         data = input("Nova data de nascimento (DD/MM/YYYY) (Enter para manter): ").strip()
         email = input(f"Novo email (Enter para manter '{responsavel.email}'): ").strip()
@@ -713,10 +787,11 @@ class TeApoioCLI:
             print(f"Erro: {error}")
             return
 
+        self._persistir_estado()
         print("Informações do usuário atualizadas com sucesso.")
 
     def _editar_crianca_por_id(self) -> None:
-        if not self._criancas:
+        if not self._obter_criancas_do_responsavel_logado():
             print("Não há crianças cadastradas.")
             return
 
@@ -724,7 +799,7 @@ class TeApoioCLI:
         if id_crianca == "0":
             return
 
-        crianca = next((item for item in self._criancas if item.id_crianca == id_crianca), None)
+        crianca = self._buscar_crianca_do_responsavel_logado(id_crianca)
         if crianca is None:
             print("Erro: criança não encontrada para o ID informado.")
             return
@@ -740,14 +815,19 @@ class TeApoioCLI:
                 data_nascimento=data,
                 nivel_suporte=nivel,
             )
+            self._servico_perfil.sincronizar_dados_crianca_no_perfil_sensorial(
+                perfil=self._perfil,
+                crianca=crianca,
+            )
         except (ValueError, TypeError) as error:
             print(f"Erro: {error}")
             return
 
+        self._persistir_estado()
         print("Informações da criança atualizadas com sucesso.")
 
     def _excluir_crianca(self) -> None:
-        if not self._criancas:
+        if not self._obter_criancas_do_responsavel_logado():
             print("Erro: não há criança cadastrada para excluir.")
             return
 
@@ -755,7 +835,7 @@ class TeApoioCLI:
         if id_crianca == "0":
             return
 
-        crianca = next((item for item in self._criancas if item.id_crianca == id_crianca), None)
+        crianca = self._buscar_crianca_do_responsavel_logado(id_crianca)
         if crianca is None:
             print("Erro: criança não encontrada para o ID informado.")
             return
@@ -771,6 +851,7 @@ class TeApoioCLI:
             perfil=self._perfil,
             id_crianca=id_crianca,
         )
+        self._persistir_estado()
         print("Criança excluída com sucesso.")
 
     @staticmethod

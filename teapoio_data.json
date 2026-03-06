@@ -1,0 +1,48 @@
+{
+  "responsaveis": [
+    {
+      "id_responsavel": "804871",
+      "nome": "Pedro Kauan cardoso da silva",
+      "data_nascimento": "22/12/2006",
+      "email": "pedro@gmail.com",
+      "criancas": [
+        {
+          "id_crianca": "960517",
+          "id_responsavel": "804871",
+          "nome": "Luan do nascimento da silva",
+          "data_nascimento": "22/12/2013",
+          "nivel_suporte": 2
+        }
+      ]
+    },
+    {
+      "id_responsavel": "697868",
+      "nome": "Perdro ruan",
+      "data_nascimento": "22/12/2006",
+      "email": "pedrok@gmail.com",
+      "criancas": [],
+      "aviso_crianca": "crianca nao cadastrada"
+    },
+    {
+      "id_responsavel": "043361",
+      "nome": "Pedro kauan",
+      "data_nascimento": "22/12/2006",
+      "email": "pedro@gmail.com",
+      "criancas": [
+        {
+          "id_crianca": "810231",
+          "id_responsavel": "043361",
+          "nome": "luan do nascimento",
+          "data_nascimento": "22/12/2010",
+          "nivel_suporte": 2
+        }
+      ]
+    }
+  ],
+  "rotinas": [],
+  "perfil": {
+    "id_responsavel": "043361",
+    "perfis_sensoriais": []
+  },
+  "data_calendario": "2026-03-06"
+}

@@ -63,3 +63,33 @@ def test_servico_perfil_exclui_crianca_e_rotinas_relacionadas():
     assert len(novas_criancas) == 0
     assert len(novas_rotinas) == 1
     assert novas_rotinas[0].id_crianca == "999999"
+
+
+def test_servico_perfil_sincroniza_nome_e_data_no_perfil_sensorial_apos_edicao():
+    perfil, crianca = _criar_perfil_com_crianca()
+    ServicoPerfil.criar_ou_atualizar_perfil_sensorial(
+        perfil=perfil,
+        crianca=crianca,
+        hipersensibilidades=["som alto"],
+        hipossensibilidades=[],
+        hiperfocos=[],
+        seletividade_alimentar=[],
+        estrategias_regulacao=[],
+    )
+
+    ServicoCadastro.editar_crianca(
+        crianca=crianca,
+        nome="Ana Cardoso",
+        data_nascimento="11/07/2015",
+    )
+
+    sincronizado = ServicoPerfil.sincronizar_dados_crianca_no_perfil_sensorial(
+        perfil=perfil,
+        crianca=crianca,
+    )
+    perfil_sensorial = perfil.obter_perfil_sensorial(crianca.id_crianca)
+
+    assert sincronizado is True
+    assert perfil_sensorial is not None
+    assert perfil_sensorial.nome == "Ana Cardoso"
+    assert perfil_sensorial.data_nascimento == crianca.data_nascimento
