@@ -9,6 +9,8 @@ from teapoio.domain.models.responsavel import Responsavel
 from teapoio.domain.models.rotina import Rotina
 from teapoio.infrastructure.persistence.Relatorio import RepositorioRelatorio
 
+#  Testa se o repositório salva corretamente o estado completo (responsável, criança,
+# perfil sensorial e rotina) e depois carrega os dados mantendo a integridade.
 
 def test_repositorio_salva_e_carrega_estado_completo(tmp_path):
     arquivo = tmp_path / "estado.json"
@@ -75,7 +77,7 @@ def test_repositorio_salva_e_carrega_estado_completo(tmp_path):
     assert rotina_carregada.itens[0].status == ItemRotina.STATUS_CONCLUIDO
     assert perfil_carregado.obter_perfil_sensorial(crianca.id_crianca) is not None
 
-
+#  Testa se o repositório retorna estado vazio quando o arquivo JSON está inválido
 def test_repositorio_json_invalido_retorna_estado_vazio(tmp_path):
     arquivo = tmp_path / "estado_invalido.json"
     arquivo.write_text("{ json-invalido", encoding="utf-8")
@@ -89,7 +91,7 @@ def test_repositorio_json_invalido_retorna_estado_vazio(tmp_path):
     assert estado["perfil"] is None
     assert isinstance(estado["data_calendario"], date)
 
-
+# Testa se o repositório salva um aviso quando o responsável não possui nenhuma criança cadastrada.
 def test_repositorio_salva_aviso_quando_responsavel_nao_tem_crianca(tmp_path):
     arquivo = tmp_path / "estado_sem_crianca.json"
     repositorio = RepositorioRelatorio(caminho_arquivo=arquivo)

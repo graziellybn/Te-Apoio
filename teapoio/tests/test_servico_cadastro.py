@@ -2,7 +2,9 @@ from teapoio.application.services.servico_cadastro import ServicoCadastro
 from teapoio.domain.models.crianca import Crianca
 from teapoio.domain.models.responsavel import Responsavel
 
-
+# TESTES PARA O SERVICO DE CADASTRO
+# =======================================
+# Testa se o serviço de cadastro cria corretamente um responsável e seu perfil vinculado.
 def test_servico_cadastro_cria_responsavel_e_perfil():
     responsavel, perfil = ServicoCadastro.cadastrar_responsavel(
         nome="Maria Silva",
@@ -13,6 +15,7 @@ def test_servico_cadastro_cria_responsavel_e_perfil():
     assert isinstance(responsavel, Responsavel)
     assert perfil.responsavel.id_responsavel == responsavel.id_responsavel
 
+# Testa se o serviço de cadastro consegue validar e encontrar um responsável pelo ID.
 
 def test_servico_cadastro_valida_responsavel_por_id():
     responsavel, _ = ServicoCadastro.cadastrar_responsavel(
@@ -28,7 +31,7 @@ def test_servico_cadastro_valida_responsavel_por_id():
 
     assert encontrado is responsavel
 
-
+# Testa se o serviço de cadastro cria uma criança vinculada ao responsável.
 def test_servico_cadastro_cria_crianca():
     responsavel, _ = ServicoCadastro.cadastrar_responsavel(
         nome="Joao Silva",
@@ -46,7 +49,7 @@ def test_servico_cadastro_cria_crianca():
     assert isinstance(crianca, Crianca)
     assert crianca.id_responsavel == responsavel.id_responsavel
 
-
+# Testa se o serviço de cadastro permite editar os dados de um responsável.
 def test_servico_cadastro_edita_responsavel():
     responsavel, _ = ServicoCadastro.cadastrar_responsavel(
         nome="Maria Silva",
@@ -63,7 +66,7 @@ def test_servico_cadastro_edita_responsavel():
     assert responsavel.nome == "Maria Souza"
     assert responsavel.email == "maria.souza@example.com"
 
-
+#  Testa se o serviço de cadastro permite editar os dados de uma criança.
 def test_servico_cadastro_edita_crianca():
     responsavel, _ = ServicoCadastro.cadastrar_responsavel(
         nome="Carlos Souza",

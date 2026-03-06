@@ -2,6 +2,10 @@ from teapoio.application.services.servico_cadastro import ServicoCadastro
 from teapoio.application.services.servico_perfil import ServicoPerfil
 from teapoio.domain.models.Perfil import Perfil
 
+# TESTES PARA O SERVICO DE PERFIL
+# =======================================
+# Função auxiliar para criar um perfil com um responsável e uma criança vinculada.
+# Retorna o perfil e a criança cadastrados.
 
 def _criar_perfil_com_crianca() -> tuple[Perfil, object]:
     responsavel, perfil = ServicoCadastro.cadastrar_responsavel(
@@ -26,6 +30,8 @@ def test_servico_perfil_busca_crianca_no_perfil():
 
     assert encontrada is crianca
 
+#  Testa se o serviço de perfil consegue localizar corretamente
+# uma criança vinculada ao perfil pelo seu ID.
 
 def test_servico_perfil_cria_ou_atualiza_perfil_sensorial():
     perfil, crianca = _criar_perfil_com_crianca()
@@ -43,6 +49,8 @@ def test_servico_perfil_cria_ou_atualiza_perfil_sensorial():
     assert perfil_sensorial.id_crianca == crianca.id_crianca
     assert perfil.obter_perfil_sensorial(crianca.id_crianca) is not None
 
+#  Testa se o serviço de perfil exclui corretamente uma criança do perfil
+# e remove apenas as rotinas relacionadas a ela, preservando as demais.
 
 def test_servico_perfil_exclui_crianca_e_rotinas_relacionadas():
     perfil, crianca = _criar_perfil_com_crianca()
@@ -64,6 +72,8 @@ def test_servico_perfil_exclui_crianca_e_rotinas_relacionadas():
     assert len(novas_rotinas) == 1
     assert novas_rotinas[0].id_crianca == "999999"
 
+# Testa se, após editar os dados da criança (nome e data de nascimento),
+# o perfil sensorial vinculado é sincronizado corretamente com as novas informações.
 
 def test_servico_perfil_sincroniza_nome_e_data_no_perfil_sensorial_apos_edicao():
     perfil, crianca = _criar_perfil_com_crianca()
