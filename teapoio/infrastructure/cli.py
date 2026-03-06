@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 import os
 from typing import List
 
@@ -14,13 +14,15 @@ from teapoio.domain.models.responsavel import Responsavel
 # Ajuste o caminho 'teapoio.domain.models...' conforme sua estrutura de pastas real
 from teapoio.domain.models.rotina import Rotina, obter_sugestoes_tea
 from teapoio.domain.models.item_rotina import ItemRotina
+from teapoio.domain.models.calendario import CalendarioRotina
 
 
 class TeApoioCLI:
     def __init__(self) -> None:
         self._responsaveis: List[Responsavel] = []
         self._criancas: List[Crianca] = []
-        self._rotinas: List[Rotina] = []  # Lista para armazenar as rotinas criadas
+        self._rotinas: List[Rotina] = []
+        self._calendario = CalendarioRotina()
         self._perfil: Perfil | None = None
 
     def executar(self) -> None:
@@ -287,15 +289,48 @@ class TeApoioCLI:
         )
 
     def _acessar_calendario(self) -> None:
-        self._limpar_tela()
-        print("\nCalendário")
-        print("Funcionalidade em desenvolvimento.")
+        while True:
+            self._limpar_tela()
+            data_atual = self._calendario.data_selecionada
+            print("\nCalendario da rotina")
+            print(f"Data selecionada: {data_atual.strftime('%d/%m/%Y')}")
+            print(self._calendario.exibir_mes())
+            print("1. Escolher dia/mes/ano")
+            print("2. Voltar para hoje")
+            print("3. Abrir rotina da data selecionada")
+            print("4. Voltar")
+
+            opcao = input("Opcao: ").strip()
+
+            if opcao == "1":
+                self._selecionar_data_calendario()
+            elif opcao == "2":
+                self._calendario.selecionar_hoje()
+                input("Data atualizada para hoje. Enter para continuar...")
+            elif opcao == "3":
+                self._acessar_menu_rotinas(data_rotina=self._calendario.data_selecionada)
+            elif opcao == "4":
+                return
+            else:
+                input("Opcao invalida. Enter para continuar...")
+
+    def _selecionar_data_calendario(self) -> None:
+        try:
+            dia = int(input("Dia (1-31): ").strip())
+            mes = int(input("Mes (1-12): ").strip())
+            ano = int(input(f"Ano (somente {date.today().year}): ").strip())
+            data_escolhida = self._calendario.selecionar_data(dia, mes, ano)
+            print(f"Data selecionada: {data_escolhida.strftime('%d/%m/%Y')}")
+        except (TypeError, ValueError) as erro:
+            print(f"Nao foi possivel selecionar a data: {erro}")
+        input("Enter para continuar...")
 
     # --- IMPLEMENTAÇÃO DA LÓGICA DE ROTINA ---
 
-    def _acessar_menu_rotinas(self) -> None:
+    def _acessar_menu_rotinas(self, data_rotina: date | None = None) -> None:
         """Gerencia o fluxo de selecionar uma criança e abrir sua rotina."""
         self._limpar_tela()
+        data_base = data_rotina or self._calendario.data_selecionada
         
         if not self._criancas:
             print("\nVocê precisa cadastrar uma criança primeiro.")
@@ -303,7 +338,7 @@ class TeApoioCLI:
             return
 
         # Selecionar Criança
-        print("\n--- Seleção de Criança para Rotina ---")
+        print(f"\n--- Selecao de crianca para rotina ({data_base.strftime('%d/%m/%Y')}) ---")
         for i, crianca in enumerate(self._criancas):
             print(f"{i + 1}. {crianca.nome} (ID: {crianca.id_crianca})")
         print("0. Voltar")
@@ -318,15 +353,27 @@ class TeApoioCLI:
             if 0 <= indice < len(self._criancas):
                 crianca_selecionada = self._criancas[indice]
                 
-                # Busca se já existe rotina para esta criança, senão cria
-                rotina_atual = next((r for r in self._rotinas if r.id_crianca == crianca_selecionada.id_crianca), None)
+                rotina_atual = next(
+                    (
+                        r
+                        for r in self._rotinas
+                        if r.id_crianca == crianca_selecionada.id_crianca
+                        and r.data_referencia == data_base
+                    ),
+                    None,
+                )
                 
                 if not rotina_atual:
-                    rotina_atual = Rotina(id_crianca=crianca_selecionada.id_crianca)
+                    rotina_atual = Rotina(
+                        id_crianca=crianca_selecionada.id_crianca,
+                        data_referencia=data_base,
+                    )
                     self._rotinas.append(rotina_atual)
-                    print(f"Nova rotina criada para {crianca_selecionada.nome}.")
+                    print(
+                        f"Nova rotina criada para {crianca_selecionada.nome} em "
+                        f"{data_base.strftime('%d/%m/%Y')}."
+                    )
                 
-                # Abre o menu específico da rotina
                 self._menu_operacoes_rotina(rotina_atual, crianca_selecionada.nome)
             else:
                 print("Opção inválida.")
@@ -353,21 +400,29 @@ class TeApoioCLI:
             if opcao == "1":
                 nome_item = input("Nome da tarefa: ").strip()
                 horario = input("Horário sugerido (ex: 08:00): ").strip()
-                if nome_item:
+                if not nome_item:
+                    print("Digite um nome para a tarefa.")
+                    input("Enter para continuar...")
+                    continue
+
+                try:
                     novo_item = ItemRotina(nome_item, horario)
                     rotina.adicionar_item(novo_item)
                     input("Tarefa adicionada! Enter para continuar...")
+                except (TypeError, ValueError) as erro:
+                    print(f"Não foi possível adicionar a tarefa: {erro}")
+                    input("Enter para continuar...")
 
             elif opcao == "2":
                 idx_str = input("Número do item para alterar status: ").strip()
                 try:
                     idx = int(idx_str) - 1
-                    print("1 = Concluído | 2 = Não Realizado | Outro = Pendente")
+                    print("1 = Concluído | 2 = Não Realizado | 3 = Pendente")
                     status_code = input("Novo status: ").strip()
                     rotina.marcar_status(idx, status_code)
                     input("Status atualizado! Enter para continuar...")
-                except ValueError:
-                    print("Número inválido.")
+                except (TypeError, ValueError, IndexError) as erro:
+                    print(f"Não foi possível atualizar o status: {erro}")
                     input("Enter para continuar...")
 
             elif opcao == "3":
@@ -376,8 +431,9 @@ class TeApoioCLI:
                     idx = int(idx_str) - 1
                     rotina.remover_item(idx)
                     input("Item removido! Enter para continuar...")
-                except ValueError:
-                    print("Número inválido.")
+                except (TypeError, ValueError, IndexError) as erro:
+                    print(f"Não foi possível remover o item: {erro}")
+                    input("Enter para continuar...")
 
             elif opcao == "4":
                 sugestoes = obter_sugestoes_tea()
