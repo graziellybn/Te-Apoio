@@ -400,17 +400,38 @@ class SerializadorEstadoRelatorio:
 class RepositorioRelatorio(ExportavelJsonMixin):
     """Implementacao de persistencia do estado em arquivo JSON."""
 
+    @staticmethod
+    def _caminho_arquivo_padrao() -> Path:
+        # Usa sempre a raiz do projeto para evitar salvar em cwd inesperado.
+        return Path(__file__).resolve().parents[3] / "teapoio_data.json"
+
     def __init__(
         self,
-        caminho_arquivo: str | Path = "teapoio_data.json",
+        caminho_arquivo: str | Path | None = None,
         serializador: SerializadorEstadoRelatorio | None = None,
     ) -> None:
-        self._caminho_arquivo = Path(caminho_arquivo)
+        self._caminho_arquivo = (
+            self._caminho_arquivo_padrao()
+            if caminho_arquivo is None
+            else Path(caminho_arquivo)
+        )
         self._serializador = serializador or SerializadorEstadoRelatorio()
 
     def carregar_estado(self) -> dict[str, Any]:
-        dados = self._ler_json_arquivo(caminho_arquivo=self._caminho_arquivo, fallback={})
-        return self._serializador.desserializar_estado(dados)
+        dados = self._ler_json_arquivo(caminho_arquivo=self._caminho_arquivo, fallback=None)
+        estado = self._serializador.desserializar_estado(dados)
+
+        # Se arquivo estiver ausente, vazio ou invalido, recria com estrutura valida.
+        if not isinstance(dados, dict) or not dados:
+            self.salvar_estado(
+                responsaveis=estado["responsaveis"],
+                criancas=estado["criancas"],
+                rotinas=estado["rotinas"],
+                perfil=estado["perfil"],
+                data_calendario=estado["data_calendario"],
+            )
+
+        return estado
 
     def salvar_estado(
         self,

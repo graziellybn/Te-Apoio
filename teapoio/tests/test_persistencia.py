@@ -91,6 +91,28 @@ def test_repositorio_json_invalido_retorna_estado_vazio(tmp_path):
     assert estado["perfil"] is None
     assert isinstance(estado["data_calendario"], date)
 
+
+def test_repositorio_inicializa_arquivo_vazio_com_json_valido(tmp_path):
+    arquivo = tmp_path / "estado_vazio.json"
+    arquivo.write_text("", encoding="utf-8")
+
+    repositorio = RepositorioRelatorio(caminho_arquivo=arquivo)
+    estado = repositorio.carregar_estado()
+
+    assert estado["responsaveis"] == []
+    assert estado["criancas"] == []
+    assert estado["rotinas"] == []
+    assert estado["perfil"] is None
+    assert isinstance(estado["data_calendario"], date)
+
+    with arquivo.open("r", encoding="utf-8") as arquivo_json:
+        payload = json.load(arquivo_json)
+
+    assert payload["responsaveis"] == []
+    assert payload["rotinas"] == []
+    assert payload["perfil"] is None
+    assert isinstance(payload["data_calendario"], str)
+
 # Testa se o repositório salva um aviso quando o responsável não possui nenhuma criança cadastrada.
 def test_repositorio_salva_aviso_quando_responsavel_nao_tem_crianca(tmp_path):
     arquivo = tmp_path / "estado_sem_crianca.json"

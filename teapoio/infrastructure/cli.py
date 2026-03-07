@@ -63,40 +63,56 @@ class TeApoioCLI:
             data_calendario=self._calendario.data_selecionada,
         )
 
+    def _persistir_estado_seguro(self, contexto: str = "") -> None:
+        try:
+            self._persistir_estado()
+        except OSError as erro:
+            if contexto:
+                print(f"Aviso: nao foi possivel salvar os dados ({contexto}): {erro}")
+            else:
+                print(f"Aviso: nao foi possivel salvar os dados: {erro}")
+
     def executar(self) -> None:
         self._limpar_tela()
         print("=== TeApoio ===")
-        while True:
-            self._exibir_menu()
-            opcao = input("Escolha uma opção: ").strip()
+        try:
+            while True:
+                self._exibir_menu()
+                opcao = input("Escolha uma opção: ").strip()
 
-            if self._sessao_autenticada():
+                if self._sessao_autenticada():
+                    if opcao == "1":
+                        self._acessar_configuracoes_perfil()
+                    elif opcao == "2":
+                        self._acessar_calendario()
+                    # --- NOVA OPÇÃO ---
+                    elif opcao == "3":
+                        self._acessar_menu_rotinas()
+                    # ------------------
+                    elif opcao == "4":
+                        self._encerrar_sessao()
+                    else:
+                        self._limpar_tela()
+                        print("Erro: opção inválida. Tente novamente.")
+
+                    self._persistir_estado_seguro("menu autenticado")
+                    continue
+
+                # Menu inicial (Login/Cadastro)
                 if opcao == "1":
-                    self._acessar_configuracoes_perfil()
+                    self._cadastrar_responsavel()
                 elif opcao == "2":
-                    self._acessar_calendario()
-                # --- NOVA OPÇÃO ---
+                    self._validar_cadastro_por_id()
                 elif opcao == "3":
-                    self._acessar_menu_rotinas()
-                # ------------------
-                elif opcao == "4":
-                    self._encerrar_sessao()
+                    print("Encerrando TeApoio.")
+                    break
                 else:
                     self._limpar_tela()
                     print("Erro: opção inválida. Tente novamente.")
-                continue
 
-            # Menu inicial (Login/Cadastro)
-            if opcao == "1":
-                self._cadastrar_responsavel()
-            elif opcao == "2":
-                self._validar_cadastro_por_id()
-            elif opcao == "3":
-                print("Encerrando TeApoio.")
-                break
-            else:
-                self._limpar_tela()
-                print("Erro: opção inválida. Tente novamente.")
+                self._persistir_estado_seguro("menu inicial")
+        finally:
+            self._persistir_estado_seguro("encerramento")
 
     def _exibir_menu(self) -> None:
         print("\nMenu Principal")
