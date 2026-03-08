@@ -26,9 +26,6 @@ class Crianca(Pessoa):
         # Validação de nível de suporte
         self.nivel_suporte = nivel_suporte
 
-        # Validação de maioridade
-        if self.verificar_maioridade():
-            raise ValueError("Criança não pode ser maior de idade.")
 
     @staticmethod
     def _gerar_id_uuid(uuid_func=None) -> str:
@@ -57,9 +54,3 @@ class Crianca(Pessoa):
         anos = hoje.year - self.data_nascimento.year
         fez_aniversario = (hoje.month, hoje.day) >= (self.data_nascimento.month, self.data_nascimento.day)
         return anos if fez_aniversario else anos - 1
-
-    def obter_status_idade(self) -> str:
-        try:
-            return "Maior de idade" if self.verificar_maioridade() else "Menor de idade"
-        except Exception:
-            return "Idade desconhecida"
