@@ -11,16 +11,20 @@ class ItemRotina:
     PADRAO_HORARIO = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
     def __init__(self, nome: str, horario: str):
+        """Inicializa um item de rotina com nome, horário e status padrão."""
         self.nome = nome
         self.horario = horario
         self.status = self.STATUS_PENDENTE
 
+
     @property
     def nome(self) -> str:
+        """Retorna o nome do item de rotina."""
         return self.__nome
 
     @nome.setter
     def nome(self, valor: str) -> None:
+        """Define e valida o nome do item de rotina."""
         if not isinstance(valor, str):
             raise TypeError("Nome do item deve ser uma string.")
 
@@ -30,12 +34,15 @@ class ItemRotina:
 
         self.__nome = nome_limpo
 
+
     @property
     def horario(self) -> str:
+        """Retorna o horário do item."""
         return self.__horario
 
     @horario.setter
     def horario(self, valor: str) -> None:
+        """Define e valida o horário do item."""
         if not isinstance(valor, str):
             raise TypeError("Horario deve ser uma string no formato HH:MM.")
 
@@ -45,12 +52,15 @@ class ItemRotina:
 
         self.__horario = horario_limpo
 
+
     @property
     def status(self) -> str:
+        """Retorna o status atual do item."""
         return self.__status
 
     @status.setter
     def status(self, valor: str) -> None:
+        """Define e valida o status do item."""
         if not isinstance(valor, str):
             raise TypeError("Status deve ser uma string.")
         if valor not in self.STATUS_PERMITIDOS:
@@ -60,11 +70,14 @@ class ItemRotina:
         self.__status = valor
 
     def atualizar(self, novo_nome: str, novo_horario: str) -> None:
+        """Atualiza nome e horário do item, validando ambos."""
         self.nome = novo_nome
         self.horario = novo_horario
 
     def __str__(self):
+        """Retorna representação amigável do item."""
         return f"[{self.horario}] {self.nome} (Status: {self.status})"
 
     def __repr__(self):
+        """Retorna representação oficial do item."""
         return self.__str__()
