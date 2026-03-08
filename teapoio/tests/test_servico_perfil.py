@@ -4,10 +4,10 @@ from teapoio.domain.models.Perfil import Perfil
 
 # TESTES PARA O SERVICO DE PERFIL
 # =======================================
-# Função auxiliar para criar um perfil com um responsável e uma criança vinculada.
-# Retorna o perfil e a criança cadastrados.
 
 def _criar_perfil_com_crianca() -> tuple[Perfil, object]:
+    """Cria um perfil com um responsável e uma criança vinculada para uso nos testes de perfil. 
+    Retorna o perfil e a criança cadastrados."""
     responsavel, perfil = ServicoCadastro.cadastrar_responsavel(
         nome="Carlos Souza",
         data_nascimento="01/01/1980",
@@ -24,16 +24,19 @@ def _criar_perfil_com_crianca() -> tuple[Perfil, object]:
 
 
 def test_servico_perfil_busca_crianca_no_perfil():
+    """Valida se o serviço de perfil consegue localizar corretamente uma criança vinculada ao perfil 
+    pelo seu ID e retorna o objeto correto """
     perfil, crianca = _criar_perfil_com_crianca()
 
     encontrada = ServicoPerfil.buscar_crianca_no_perfil(perfil, crianca.id_crianca)
 
     assert encontrada is crianca
 
-#  Testa se o serviço de perfil consegue localizar corretamente
-# uma criança vinculada ao perfil pelo seu ID.
+
 
 def test_servico_perfil_cria_ou_atualiza_perfil_sensorial():
+    """Testa se o serviço de perfil consegue localizar corretamente
+# uma criança vinculada ao perfil pelo seu ID."""
     perfil, crianca = _criar_perfil_com_crianca()
 
     perfil_sensorial = ServicoPerfil.criar_ou_atualizar_perfil_sensorial(
@@ -49,10 +52,10 @@ def test_servico_perfil_cria_ou_atualiza_perfil_sensorial():
     assert perfil_sensorial.id_crianca == crianca.id_crianca
     assert perfil.obter_perfil_sensorial(crianca.id_crianca) is not None
 
-#  Testa se o serviço de perfil exclui corretamente uma criança do perfil
-# e remove apenas as rotinas relacionadas a ela, preservando as demais.
+
 
 def test_servico_perfil_exclui_crianca_e_rotinas_relacionadas():
+    """Valida se o serviço de perfil exclui corretamente uma criança do perfil e remove apenas as rotinas relacionadas a ela, preservando as demais."""
     perfil, crianca = _criar_perfil_com_crianca()
     from teapoio.domain.models.rotina import Rotina
 
@@ -72,10 +75,10 @@ def test_servico_perfil_exclui_crianca_e_rotinas_relacionadas():
     assert len(novas_rotinas) == 1
     assert novas_rotinas[0].id_crianca == "999999"
 
-# Testa se, após editar os dados da criança (nome e data de nascimento),
-# o perfil sensorial vinculado é sincronizado corretamente com as novas informações.
+
 
 def test_servico_perfil_sincroniza_nome_e_data_no_perfil_sensorial_apos_edicao():
+    """Valida se, após editar os dados da criança (nome e data de nascimento), o perfil sensorial vinculado é sincronizado corretamente com as novas informações."""
     perfil, crianca = _criar_perfil_com_crianca()
     ServicoPerfil.criar_ou_atualizar_perfil_sensorial(
         perfil=perfil,
