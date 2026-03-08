@@ -12,6 +12,7 @@ def _criar_perfil_com_crianca() -> tuple[Perfil, object]:
         nome="Carlos Souza",
         data_nascimento="01/01/1980",
         email="carlos@example.com",
+        senha="carlos123",
     )
     crianca = ServicoCadastro.cadastrar_crianca(
         responsavel=responsavel,

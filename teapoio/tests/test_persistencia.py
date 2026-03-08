@@ -20,6 +20,7 @@ def test_repositorio_salva_e_carrega_estado_completo(tmp_path):
         nome="Maria Souza",
         data_nascimento="01/01/1985",
         email="maria@example.com",
+        senha="maria123",
     )
     crianca = Crianca(
         nome="Ana Souza",
@@ -38,8 +39,10 @@ def test_repositorio_salva_e_carrega_estado_completo(tmp_path):
     perfil.adicionar_perfil_sensorial(perfil_sensorial)
 
     rotina = Rotina(id_crianca=crianca.id_crianca, data_referencia=date(2026, 3, 1))
-    item = ItemRotina(nome="Escovar os dentes", horario="08:00")
+    rotina.atualizar_sentimento_dia("bem")
+    item = ItemRotina(nome="Escovar os dentes", horario="08:00", tags=["higiene", "manha"])
     item.status = ItemRotina.STATUS_CONCLUIDO
+    item.observacao = "Fez com apoio visual"
     rotina.adicionar_item(item)
 
     repositorio.salvar_estado(
@@ -57,6 +60,7 @@ def test_repositorio_salva_e_carrega_estado_completo(tmp_path):
     assert len(payload["responsaveis"]) == 1
     assert len(payload["responsaveis"][0]["criancas"]) == 1
     assert payload["responsaveis"][0]["criancas"][0]["id_crianca"] == crianca.id_crianca
+    assert payload["responsaveis"][0]["senha"] == "maria123"
 
     estado = repositorio.carregar_estado()
 
@@ -74,7 +78,10 @@ def test_repositorio_salva_e_carrega_estado_completo(tmp_path):
     assert responsavel_carregado.id_responsavel == responsavel.id_responsavel
     assert crianca_carregada.id_crianca == crianca.id_crianca
     assert rotina_carregada.id_crianca == crianca.id_crianca
+    assert rotina_carregada.sentimento_dia == "bem"
     assert rotina_carregada.itens[0].status == ItemRotina.STATUS_CONCLUIDO
+    assert rotina_carregada.itens[0].observacao == "Fez com apoio visual"
+    assert rotina_carregada.itens[0].tags == ["higiene", "manha"]
     assert perfil_carregado.obter_perfil_sensorial(crianca.id_crianca) is not None
 
 #  Testa se o repositório retorna estado vazio quando o arquivo JSON está inválido
@@ -122,6 +129,7 @@ def test_repositorio_salva_aviso_quando_responsavel_nao_tem_crianca(tmp_path):
         nome="Maria Souza",
         data_nascimento="01/01/1985",
         email="maria@example.com",
+        senha="maria123",
     )
 
     repositorio.salvar_estado(

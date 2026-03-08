@@ -123,6 +123,7 @@ class SerializadorEstadoRelatorio:
             "nome": responsavel.nome,
             "data_nascimento": responsavel.data_nascimento.strftime("%d/%m/%Y"),
             "email": responsavel.email,
+            "senha": responsavel.senha,
             "criancas": [
                 self._serializar_crianca(item)
                 for item in criancas_responsavel
@@ -184,13 +185,19 @@ class SerializadorEstadoRelatorio:
             return None
 
         try:
+            id_responsavel = bruto.get("id_responsavel")
+            senha = bruto.get("senha")
+            if not isinstance(senha, str) or not senha.strip():
+                senha = f"legado-{str(id_responsavel or '').strip() or '000000'}"
+
             return Responsavel(
                 nome=bruto.get("nome"),
                 data_nascimento=self._normalizar_data_nascimento(
                     bruto.get("data_nascimento")
                 ),
                 email=bruto.get("email"),
-                id_responsavel=bruto.get("id_responsavel"),
+                senha=senha,
+                id_responsavel=id_responsavel,
             )
         except (TypeError, ValueError):
             return None
@@ -313,6 +320,7 @@ class SerializadorEstadoRelatorio:
         return {
             "id_crianca": rotina.id_crianca,
             "data_referencia": rotina.data_referencia.isoformat(),
+            "sentimento_dia": rotina.sentimento_dia,
             "itens": [self._serializar_item_rotina(item) for item in rotina.itens],
         }
 
@@ -322,6 +330,8 @@ class SerializadorEstadoRelatorio:
             "nome": item.nome,
             "horario": item.horario,
             "status": item.status,
+            "observacao": item.observacao,
+            "tags": item.tags,
         }
 
     def _desserializar_rotina(self, bruto: Any) -> Rotina | None:
@@ -334,6 +344,7 @@ class SerializadorEstadoRelatorio:
                 data_referencia=self._desserializar_data_referencia(
                     bruto.get("data_referencia")
                 ),
+                sentimento_dia=bruto.get("sentimento_dia"),
             )
         except (TypeError, ValueError):
             return None
@@ -359,9 +370,21 @@ class SerializadorEstadoRelatorio:
             return None
 
         try:
+            observacao = bruto.get("observacao")
+            tags_brutas = bruto.get("tags", [])
+            tags: list[str]
+            if isinstance(tags_brutas, list):
+                tags = [item for item in tags_brutas if isinstance(item, str)]
+            elif isinstance(tags_brutas, str):
+                tags = [item.strip() for item in tags_brutas.split(",") if item.strip()]
+            else:
+                tags = []
+
             item = ItemRotina(
                 nome=bruto.get("nome"),
                 horario=bruto.get("horario"),
+                observacao=observacao if isinstance(observacao, str) else "",
+                tags=tags,
             )
             status = bruto.get("status")
             if isinstance(status, str):

@@ -5,8 +5,17 @@ import uuid
 class Responsavel(Pessoa):
     """[SOLID: LSP] Implementacao concreta substituivel de Pessoa."""
 
-    def __init__(self, nome, data_nascimento, email, id_responsavel=None, uuid_func=None):
+    def __init__(
+        self,
+        nome,
+        data_nascimento,
+        email,
+        senha,
+        id_responsavel=None,
+        uuid_func=None,
+    ):
         super().__init__(nome, data_nascimento, email)
+        self.senha = self._validar_senha(senha)
 
         if id_responsavel:
             self.id_responsavel = str(id_responsavel)
@@ -16,6 +25,22 @@ class Responsavel(Pessoa):
         # Validação de maioridade
         if not self.verificar_maioridade():
             raise ValueError("Responsável deve ter pelo menos 18 anos.")
+
+    @staticmethod
+    def _validar_senha(senha: str) -> str:
+        if not isinstance(senha, str):
+            raise ValueError("Senha deve ser uma string.")
+
+        senha_limpa = senha.strip()
+        if len(senha_limpa) < 6:
+            raise ValueError("Senha deve ter pelo menos 6 caracteres.")
+
+        return senha_limpa
+
+    def confere_senha(self, senha_informada: str) -> bool:
+        if not isinstance(senha_informada, str):
+            return False
+        return self.senha == senha_informada.strip()
 
     @staticmethod
     def _gerar_id_uuid(uuid_func=None) -> str:

@@ -178,9 +178,10 @@ class TeApoioCLI:
         nome = ""
         data_nascimento = ""
         email = ""
+        senha = ""
         etapa = 0
 
-        while etapa < 3:
+        while etapa < 4:
             if etapa == 0:
                 resultado = self._ler_nome_valido("Nome: ")
                 if resultado is None:
@@ -199,17 +200,36 @@ class TeApoioCLI:
                 etapa += 1
                 continue
 
-            resultado = self._ler_email_valido("Email: ")
+            if etapa == 2:
+                resultado = self._ler_email_valido("Email: ")
+                if resultado is None:
+                    etapa -= 1
+                    continue
+                email = resultado
+                etapa += 1
+                continue
+
+            resultado = self._ler_senha_valida("Senha (minimo 6 caracteres): ")
             if resultado is None:
                 etapa -= 1
                 continue
-            email = resultado
+            senha = resultado
             etapa += 1
+
+        try:
+            self._servico_cadastro.validar_email_disponivel(
+                self._responsaveis,
+                email,
+            )
+        except ValueError as error:
+            self._mostrar_erro(str(error))
+            return
 
         responsavel, perfil = self._servico_cadastro.cadastrar_responsavel(
             nome=nome,
             data_nascimento=data_nascimento,
             email=email,
+            senha=senha,
         )
         self._responsaveis.append(responsavel)
         self._perfil = perfil
@@ -264,6 +284,18 @@ class TeApoioCLI:
                 continue
             return email
 
+    def _ler_senha_valida(self, prompt: str) -> str | None:
+        while True:
+            senha = input(prompt).strip()
+            if senha == "0":
+                return None
+            try:
+                Responsavel._validar_senha(senha)
+            except ValueError as error:
+                self._mostrar_erro(str(error))
+                continue
+            return senha
+
     def _ler_nome_crianca_valido(self, prompt: str) -> str | None:
         while True:
             nome = input(prompt).strip()
@@ -311,13 +343,15 @@ class TeApoioCLI:
             return
 
         id_informado = input("Digite seu id de validação: ").strip()
-        cadastro = self._servico_cadastro.validar_responsavel_por_id(
+        senha_informada = input("Digite sua senha: ").strip()
+        cadastro = self._servico_cadastro.validar_responsavel_por_credenciais(
             self._responsaveis,
             id_informado,
+            senha_informada,
         )
 
         if cadastro is None:
-            print("Erro: id não encontrado.")
+            print("Erro: id ou senha inválidos.")
             return
 
         self._responsavel_logado = cadastro

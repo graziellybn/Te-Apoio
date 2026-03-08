@@ -22,6 +22,26 @@ def test_item_rotina_rejeita_nome_vazio():
 	with pytest.raises(ValueError):
 		ItemRotina("   ", "09:00")
 
+
+def test_item_rotina_permita_observacao_rapida():
+	item = ItemRotina("Escovar os dentes", "08:00", observacao="Fez sem resistencia")
+	assert item.observacao == "Fez sem resistencia"
+
+
+def test_item_rotina_rejeita_observacao_muito_longa():
+	with pytest.raises(ValueError):
+		ItemRotina("Escovar os dentes", "08:00", observacao="a" * 281)
+
+
+def test_item_rotina_normaliza_tags_e_remove_duplicadas():
+	item = ItemRotina("Escovar os dentes", "08:00", tags=["#higiene", "manha", "HIGIENE", " "])
+	assert item.tags == ["higiene", "manha"]
+
+
+def test_item_rotina_rejeita_excesso_de_tags():
+	with pytest.raises(ValueError):
+		ItemRotina("Escovar os dentes", "08:00", tags=[f"tag{i}" for i in range(9)])
+
 # Testa se a rotina aceita um ID de criança numérico, string ou inteiro e converte para string.
 def test_rotina_aceita_id_numerico_string_ou_inteiro():
 	rotina_texto = Rotina("123456")
@@ -39,6 +59,19 @@ def test_rotina_rejeita_id_crianca_nao_numerico():
 def test_rotina_aceita_data_referencia_em_texto():
 	rotina = Rotina("123456", data_referencia="06/03/2026")
 	assert rotina.data_formatada == "06/03/2026"
+
+
+def test_rotina_atualiza_sentimento_do_dia_com_emoji():
+	rotina = Rotina("123456")
+	rotina.atualizar_sentimento_dia("bem")
+	assert rotina.sentimento_dia == "bem"
+	assert rotina.sentimento_dia_info["completo"] == "🙂 Bem"
+
+
+def test_rotina_rejeita_sentimento_invalido():
+	rotina = Rotina("123456")
+	with pytest.raises(ValueError):
+		rotina.atualizar_sentimento_dia("excelente-demais")
 
 # Não aceita data de referência em formato inválido.
 def test_rotina_rejeita_data_referencia_invalida():

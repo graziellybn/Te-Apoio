@@ -48,8 +48,14 @@ def test_servico_adicionar_item_e_marcar_status():
 
 def test_servico_aceita_fabricas_customizadas():
     class FabricaItemFake:
-        def criar(self, nome: str, horario: str) -> ItemRotina:
-            return ItemRotina(f"fake-{nome}", horario)
+        def criar(
+            self,
+            nome: str,
+            horario: str,
+            observacao: str = "",
+            tags: list[str] | None = None,
+        ) -> ItemRotina:
+            return ItemRotina(f"fake-{nome}", horario, observacao=observacao, tags=tags)
 
     class FabricaRotinaFake:
         def criar(self, id_crianca: str | int, data_referencia: date) -> Rotina:

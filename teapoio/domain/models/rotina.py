@@ -53,18 +53,40 @@ class CalculadoraEvolucaoPadrao:
 class Rotina:
     """[SOLID: SRP, OCP, DIP] Entidade de rotina com regras de dominio."""
 
+    SENTIMENTOS_DIA = {
+        "otimo": {"emoji": "🤩", "label": "Otimo"},
+        "bem": {"emoji": "🙂", "label": "Bem"},
+        "neutro": {"emoji": "😐", "label": "Neutro"},
+        "dificil": {"emoji": "😟", "label": "Dificil"},
+        "cansativo": {"emoji": "😴", "label": "Cansativo"},
+    }
+
     def __init__(
         self,
         id_crianca,
         data_referencia=None,
+        sentimento_dia: str | None = None,
         resolvedor_status: ResolvedorStatusRotina | None = None,
         calculadora_evolucao: CalculadoraEvolucaoRotina | None = None,
     ):
         self.id_crianca = self._validar_id_crianca(id_crianca)
         self.data_referencia = self._validar_data_referencia(data_referencia)
         self.itens: List[ItemRotina] = []
+        self.sentimento_dia = sentimento_dia
         self._resolvedor_status = resolvedor_status or ResolvedorStatusPadrao()
         self._calculadora_evolucao = calculadora_evolucao or CalculadoraEvolucaoPadrao()
+
+    @classmethod
+    def opcoes_sentimento_dia(cls) -> list[dict[str, str]]:
+        return [
+            {
+                "codigo": codigo,
+                "emoji": dados["emoji"],
+                "label": dados["label"],
+                "completo": f"{dados['emoji']} {dados['label']}",
+            }
+            for codigo, dados in cls.SENTIMENTOS_DIA.items()
+        ]
 
     @staticmethod
     def _validar_id_crianca(id_crianca) -> str:
@@ -110,6 +132,46 @@ class Rotina:
     def data_formatada(self) -> str:
         return self.data_referencia.strftime("%d/%m/%Y")
 
+    @property
+    def sentimento_dia(self) -> str:
+        return self.__sentimento_dia
+
+    @sentimento_dia.setter
+    def sentimento_dia(self, valor: str | None) -> None:
+        if valor is None:
+            self.__sentimento_dia = ""
+            return
+        if not isinstance(valor, str):
+            raise TypeError("Sentimento do dia deve ser uma string.")
+
+        sentimento = valor.strip().lower()
+        if not sentimento:
+            self.__sentimento_dia = ""
+            return
+        if sentimento not in self.SENTIMENTOS_DIA:
+            permitidos = ", ".join(sorted(self.SENTIMENTOS_DIA))
+            raise ValueError(f"Sentimento invalido. Permitidos: {permitidos}.")
+
+        self.__sentimento_dia = sentimento
+
+    @property
+    def sentimento_dia_info(self) -> dict[str, str]:
+        if not self.sentimento_dia:
+            return {
+                "codigo": "",
+                "emoji": "",
+                "label": "Nao informado",
+                "completo": "Nao informado",
+            }
+
+        dados = self.SENTIMENTOS_DIA[self.sentimento_dia]
+        return {
+            "codigo": self.sentimento_dia,
+            "emoji": dados["emoji"],
+            "label": dados["label"],
+            "completo": f"{dados['emoji']} {dados['label']}",
+        }
+
     @staticmethod
     def _validar_indice(indice, total_itens: int) -> None:
         if not isinstance(indice, int):
@@ -153,6 +215,9 @@ class Rotina:
 
     def obter_resumo_evolucao(self):
         return self.obter_evolucao().to_dict()
+
+    def atualizar_sentimento_dia(self, sentimento: str | None) -> None:
+        self.sentimento_dia = sentimento
 
 def obter_sugestoes_tea():
     return [

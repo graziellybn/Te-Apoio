@@ -9,10 +9,24 @@ class ServicoCadastro:
     """[SOLID: SRP, OCP, DIP] Casos de uso de cadastro e edicao de pessoas."""
 
     @staticmethod
-    def cadastrar_responsavel(nome: str, data_nascimento: str, email: str) -> tuple[Responsavel, Perfil]:
-        responsavel = Responsavel(nome, data_nascimento, email)
+    def cadastrar_responsavel(
+        nome: str,
+        data_nascimento: str,
+        email: str,
+        senha: str,
+    ) -> tuple[Responsavel, Perfil]:
+        responsavel = Responsavel(nome, data_nascimento, email, senha)
         perfil = Perfil(responsavel=responsavel)
         return responsavel, perfil
+
+    @staticmethod
+    def validar_email_disponivel(
+        responsaveis: list[Responsavel],
+        email: str,
+    ) -> None:
+        email_normalizado = Responsavel._validar_email(email)
+        if any(item.email == email_normalizado for item in responsaveis):
+            raise ValueError("Ja existe responsavel cadastrado com este email.")
 
     @staticmethod
     def validar_responsavel_por_id(
@@ -23,6 +37,22 @@ class ServicoCadastro:
             (r for r in responsaveis if r.id_responsavel == id_informado),
             None,
         )
+
+    @staticmethod
+    def validar_responsavel_por_credenciais(
+        responsaveis: list[Responsavel],
+        id_informado: str,
+        senha_informada: str,
+    ) -> Responsavel | None:
+        cadastro = ServicoCadastro.validar_responsavel_por_id(
+            responsaveis,
+            id_informado,
+        )
+        if cadastro is None:
+            return None
+        if not cadastro.confere_senha(senha_informada):
+            return None
+        return cadastro
 
     @staticmethod
     def cadastrar_crianca(
@@ -44,6 +74,7 @@ class ServicoCadastro:
         nome: str = "",
         data_nascimento: str = "",
         email: str = "",
+        senha: str = "",
     ) -> Responsavel:
         if nome:
             responsavel.nome = Responsavel._validar_nome(nome)
@@ -59,6 +90,9 @@ class ServicoCadastro:
 
         if email:
             responsavel.email = Responsavel._validar_email(email)
+
+        if senha:
+            responsavel.senha = Responsavel._validar_senha(senha)
 
         return responsavel
 

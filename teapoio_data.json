@@ -1,31 +1,130 @@
 {
   "responsaveis": [
     {
-      "id_responsavel": "472085",
-      "nome": "pedro kauan",
+      "id_responsavel": "244094",
+      "nome": "Pedro Kauan Cardoso Da Silva",
       "data_nascimento": "22/12/2006",
-      "email": "pedro@gmail.com",
+      "email": "pedrokauancardosoda@gmail.com",
+      "senha": "POO123",
+      "criancas": [],
+      "aviso_crianca": "crianca nao cadastrada"
+    },
+    {
+      "id_responsavel": "416471",
+      "nome": "luan da silva",
+      "data_nascimento": "22/12/2002",
+      "email": "sla@gmail.com",
+      "senha": "221206",
+      "criancas": [],
+      "aviso_crianca": "crianca nao cadastrada"
+    },
+    {
+      "id_responsavel": "178576",
+      "nome": "Pedro Kauan Cardoso Da Silva",
+      "data_nascimento": "22/12/2006",
+      "email": "lauan@gmail.com",
+      "senha": "221206",
       "criancas": [
         {
-          "id_crianca": "955951",
-          "id_responsavel": "472085",
-          "nome": "luan do nascimento",
+          "id_crianca": "892322",
+          "id_responsavel": "178576",
+          "nome": "Maria da silva",
           "data_nascimento": "22/12/2009",
           "nivel_suporte": 2
         }
       ]
+    },
+    {
+      "id_responsavel": "470483",
+      "nome": "Maria da silva",
+      "data_nascimento": "11/11/2000",
+      "email": "maria@gmail.com",
+      "senha": "221206",
+      "criancas": [
+        {
+          "id_crianca": "754971",
+          "id_responsavel": "470483",
+          "nome": "luan da silva",
+          "data_nascimento": "22/12/2012",
+          "nivel_suporte": 2
+        }
+      ]
+    },
+    {
+      "id_responsavel": "869356",
+      "nome": "Pedro Kauan Cardoso Da Silva",
+      "data_nascimento": "22/12/2006",
+      "email": "pedrokauan@gmail.com",
+      "senha": "POO321",
+      "criancas": [],
+      "aviso_crianca": "crianca nao cadastrada"
     }
   ],
   "rotinas": [
     {
-      "id_crianca": "955951",
+      "id_crianca": "892322",
+      "data_referencia": "2026-03-07",
+      "sentimento_dia": "",
+      "itens": [
+        {
+          "nome": "Café da manha",
+          "horario": "08:00",
+          "status": "Concluído",
+          "observacao": "",
+          "tags": []
+        },
+        {
+          "nome": "almoço",
+          "horario": "10:00",
+          "status": "Pendente",
+          "observacao": "",
+          "tags": []
+        }
+      ]
+    },
+    {
+      "id_crianca": "892322",
       "data_referencia": "2026-03-06",
+      "sentimento_dia": "",
+      "itens": []
+    },
+    {
+      "id_crianca": "754971",
+      "data_referencia": "2026-03-07",
+      "sentimento_dia": "bem",
+      "itens": [
+        {
+          "nome": "lanchar",
+          "horario": "09:00",
+          "status": "Não Realizado",
+          "observacao": "Não comeu verduras",
+          "tags": []
+        },
+        {
+          "nome": "dormir",
+          "horario": "22:00",
+          "status": "Pendente",
+          "observacao": "",
+          "tags": []
+        }
+      ]
+    },
+    {
+      "id_crianca": "754971",
+      "data_referencia": "2026-03-06",
+      "sentimento_dia": "",
+      "itens": []
+    },
+    {
+      "id_crianca": "754971",
+      "data_referencia": "2026-03-05",
+      "sentimento_dia": "",
       "itens": []
     }
   ],
   "perfil": {
-    "id_responsavel": "472085",
+    "id_responsavel": "869356",
     "perfis_sensoriais": []
   },
-  "data_calendario": "2026-03-06"
+  "data_calendario": "2026-03-07"
 }

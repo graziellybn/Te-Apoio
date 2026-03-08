@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TeApoio - Painel Web</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="{% if not responsavel_selecionado %}auth-mode{% endif %}">
+  <div class="orb orb-a"></div>
+  <div class="orb orb-b"></div>
+
+  <header class="hero">
+    <p class="eyebrow">TEAPOIO WEB</p>
+    <h1>Painel em Python (Flask)</h1>
+    <p class="subtitle">Crie sua conta para comecar. Se ja tiver cadastro, faca login para acessar as secoes internas.</p>
+  </header>
+
+  <main class="grid {% if not responsavel_selecionado %}grid-auth{% endif %}">
+    {% if responsavel_selecionado %}
+      <section class="card card-wide">
+        <div class="tab-row">
+          <a class="btn btn-ghost {% if secao == 'criancas' %}is-selected{% endif %}" href="{{ url_for('pagina_inicial', secao='criancas') }}">Criancas</a>
+          <a class="btn btn-ghost {% if secao == 'rotina' %}is-selected{% endif %}" href="{{ url_for('pagina_inicial', secao='rotina') }}">Rotina</a>
+          <a class="btn btn-ghost {% if secao == 'perfil' %}is-selected{% endif %}" href="{{ url_for('pagina_inicial', secao='perfil') }}">Ver perfil</a>
+        </div>
+        <div class="session-row">
+          <span class="badge badge-ok">Logado: {{ responsavel_selecionado.nome }}</span>
+          <form method="post" action="{{ url_for('web_logout') }}">
+            <button class="btn btn-ghost" type="submit">Sair da conta</button>
+          </form>
+        </div>
+      </section>
+    {% endif %}
+
+    {% with mensagens = get_flashed_messages(with_categories=true) %}
+      {% if mensagens %}
+        <ul class="flash-list flash-list-wide">
+          {% for categoria, msg in mensagens %}
+            <li class="flash-item {% if categoria == 'erro' %}flash-erro{% else %}flash-sucesso{% endif %}">{{ msg }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    {% if onboarding and onboarding.mostrar and responsavel_selecionado %}
+      <section class="card card-wide onboarding-card">
+        <h2>Primeiros passos</h2>
+        <p class="switch-row">Complete este checklist para configurar seu espaco rapidamente.</p>
+        <ul class="onboarding-list">
+          {% for passo in onboarding.passos %}
+            <li class="onboarding-item {% if passo.feito %}is-done{% endif %}">
+              <span>{% if passo.feito %}Concluido{% else %}Pendente{% endif %} - {{ passo.titulo }}</span>
+              {% if not passo.feito %}
+                <a class="btn btn-ghost btn-mini" href="{{ url_for('pagina_inicial', secao=passo.secao) }}">Abrir</a>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {% if not responsavel_selecionado and secao == 'cadastro' %}
+      <section class="card">
+        <h2>Criar conta</h2>
+        <form class="form-grid" method="post" action="{{ url_for('web_cadastrar_responsavel') }}">
+          <label>Nome completo
+            <input name="nome" placeholder="Ex: Maria Silva" required>
+          </label>
+          <label>Data nascimento
+            <input name="data_nascimento" placeholder="DD/MM/AAAA" required>
+          </label>
+          <label>Email
+            <input name="email" type="email" placeholder="maria@email.com" required>
+          </label>
+          <label>Senha
+            <input name="senha" type="password" placeholder="Minimo 6 caracteres" required>
+          </label>
+          <button class="btn" type="submit">Salvar responsavel</button>
+        </form>
+        <p class="switch-row">Ja sou cadastrado. <a href="{{ url_for('pagina_inicial', secao='login') }}">Ir para login</a></p>
+      </section>
+    {% endif %}
+
+    {% if not responsavel_selecionado and secao == 'login' %}
+      <section class="card">
+        <h2>Login</h2>
+        <form class="form-grid" method="post" action="{{ url_for('web_selecionar_responsavel') }}">
+          <label>ID do responsavel
+            <input name="id_responsavel" placeholder="Digite seu ID" required>
+          </label>
+          <label>Senha
+            <input name="senha" type="password" placeholder="Digite sua senha" required>
+          </label>
+          <button class="btn" type="submit">Entrar</button>
+        </form>
+        <p class="switch-row">Nao tem conta ainda? <a href="{{ url_for('pagina_inicial', secao='cadastro') }}">Criar conta</a></p>
+      </section>
+    {% endif %}
+
+    {% if secao == 'criancas' %}
+      {% if responsavel_selecionado %}
+        <section class="card">
+          <h2>Criancas do responsavel</h2>
+          <ul class="list">
+            {% if criancas_responsavel %}
+              {% for item in criancas_responsavel %}
+                <li class="list-row">
+                  <span>{{ item.nome }} | ID: {{ item.id_crianca }} | Nivel {{ item.nivel_suporte }}</span>
+                  <form method="post" action="{{ url_for('web_selecionar_crianca') }}">
+                    <input type="hidden" name="id_crianca" value="{{ item.id_crianca }}">
+                    <button class="btn btn-mini" type="submit">Selecionar</button>
+                  </form>
+                </li>
+              {% endfor %}
+            {% else %}
+              <li>Nenhuma crianca cadastrada para este responsavel.</li>
+            {% endif %}
+          </ul>
+        </section>
+
+        <section class="card card-wide">
+          <h2>Gerenciar cadastro</h2>
+          <details class="toggle-panel">
+            <summary class="btn btn-ghost toggle-summary">Cadastrar crianca</summary>
+            <form class="form-grid" method="post" action="{{ url_for('web_cadastrar_crianca') }}">
+              <label>Nome completo
+                <input name="nome" required>
+              </label>
+              <label>Data nascimento
+                <input name="data_nascimento" placeholder="DD/MM/AAAA" required>
+              </label>
+              <label>Nivel de suporte
+                <select name="nivel_suporte" required>
+                  <option value="1">1</option>
+                  <option value="2" selected>2</option>
+                  <option value="3">3</option>
+                </select>
+              </label>
+              <button class="btn" type="submit">Salvar crianca</button>
+            </form>
+          </details>
+
+          {% if criancas_responsavel %}
+            <details class="toggle-panel">
+              <summary class="btn btn-ghost toggle-summary">Editar crianca</summary>
+              <form class="form-grid" method="post" action="{{ url_for('web_editar_crianca') }}">
+                <label>Crianca
+                  <select name="id_crianca" required>
+                    {% for item in criancas_responsavel %}
+                      <option value="{{ item.id_crianca }}" {% if crianca_selecionada and crianca_selecionada.id_crianca == item.id_crianca %}selected{% endif %}>{{ item.nome }} (ID {{ item.id_crianca }})</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                <label>Novo nome
+                  <input name="nome" placeholder="Deixe vazio para manter">
+                </label>
+                <label>Nova data nascimento
+                  <input name="data_nascimento" placeholder="DD/MM/AAAA">
+                </label>
+                <label>Novo nivel de suporte
+                  <select name="nivel_suporte">
+                    <option value="">Manter atual</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                  </select>
+                </label>
+                <button class="btn" type="submit">Salvar alteracoes</button>
+              </form>
+            </details>
+
+            <details class="toggle-panel">
+              <summary class="btn btn-ghost toggle-summary">Excluir crianca</summary>
+              <form class="form-grid" method="post" action="{{ url_for('web_excluir_crianca') }}">
+                <label>Crianca
+                  <select name="id_crianca" required>
+                    {% for item in criancas_responsavel %}
+                      <option value="{{ item.id_crianca }}">{{ item.nome }} (ID {{ item.id_crianca }})</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                <label class="confirm-check">
+                  <input type="checkbox" name="confirmacao_1" value="sim" required>
+                  <span>Estou ciente de que a exclusao e permanente.</span>
+                </label>
+                <label>Digite EXCLUIR para confirmar
+                  <input name="confirmacao_2" placeholder="EXCLUIR" required>
+                </label>
+                <button class="btn btn-danger" type="submit">Excluir crianca</button>
+              </form>
+            </details>
+          {% else %}
+            <p>Nenhuma crianca cadastrada para editar ou excluir.</p>
+          {% endif %}
+        </section>
+      {% else %}
+        <section class="card card-wide">
+          <h2>Criancas</h2>
+          <p>Faça login/cadastro primeiro para gerenciar crianças.</p>
+        </section>
+      {% endif %}
+    {% endif %}
+
+    {% if secao == 'rotina' %}
+      {% if crianca_selecionada %}
+        <section class="card">
+          <h2>Calendario da rotina</h2>
+          {% if calendario_exibicao %}
+            <div class="calendar-nav">
+              {% if calendario_exibicao.permite_anterior %}
+                <a class="btn btn-ghost btn-mini" href="{{ url_for('pagina_inicial', secao='rotina', data_rotina=data_rotina, cal_mes=calendario_exibicao.mes_anterior, cal_ano=calendario_exibicao.ano_anterior) }}">Mes anterior</a>
+              {% else %}
+                <span></span>
+              {% endif %}
+              <strong>{{ calendario_exibicao.mes_nome }} {{ calendario_exibicao.ano }}</strong>
+              {% if calendario_exibicao.permite_proximo %}
+                <a class="btn btn-ghost btn-mini" href="{{ url_for('pagina_inicial', secao='rotina', data_rotina=data_rotina, cal_mes=calendario_exibicao.mes_proximo, cal_ano=calendario_exibicao.ano_proximo) }}">Mes seguinte</a>
+              {% else %}
+                <span></span>
+              {% endif %}
+            </div>
+
+            <div class="calendar-weekdays">
+              <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sab</span>
+            </div>
+            <div class="calendar-grid">
+              {% for semana in calendario_exibicao.semanas %}
+                {% for dia in semana %}
+                  {% if dia.mes_atual %}
+                    <form class="calendar-day-form" method="post" action="{{ url_for('web_calendario_selecionar_data') }}">
+                      <input type="hidden" name="data" value="{{ dia.data_iso }}">
+                      <button class="calendar-day {% if dia.selecionado %}is-selected{% endif %} {% if dia.hoje %}is-today{% endif %}" type="submit" {% if dia.bloqueado %}disabled{% endif %}>{{ dia.dia }}</button>
+                    </form>
+                  {% else %}
+                    <span class="calendar-day is-outside">{{ dia.dia }}</span>
+                  {% endif %}
+                {% endfor %}
+              {% endfor %}
+            </div>
+
+            <form method="post" action="{{ url_for('web_calendario_hoje') }}">
+              <button class="btn btn-ghost btn-mini" type="submit">Voltar para hoje</button>
+            </form>
+          {% endif %}
+        </section>
+
+        <section class="card">
+          <h2>Adicionar item de rotina</h2>
+          <form class="form-grid" method="post" action="{{ url_for('web_adicionar_item_rotina') }}">
+            <label>ID crianca selecionada
+              <input name="id_crianca" readonly value="{{ crianca_selecionada.id_crianca }}">
+            </label>
+            <label>Data
+              <input name="data" type="date" required value="{{ data_rotina }}">
+            </label>
+            <label>Nome da tarefa
+              <input name="nome" required>
+            </label>
+            <label>Horario (24h)
+              <input name="horario" placeholder="08:00" required>
+            </label>
+            <label>Tags da tarefa
+              <input name="tags" placeholder="#higiene, manha, casa">
+            </label>
+            <label>Observacao inicial
+              <input name="observacao" placeholder="Opcional">
+            </label>
+            <button class="btn" type="submit">Adicionar item</button>
+          </form>
+        </section>
+
+        <section class="card card-wide">
+          <h2>Consultar rotina</h2>
+          <form class="form-inline" method="post" action="{{ url_for('web_consultar_rotina') }}">
+            <label>ID crianca selecionada
+              <input name="id_crianca" readonly value="{{ crianca_selecionada.id_crianca }}">
+            </label>
+            <label>Data
+              <input name="data" type="date" required value="{{ data_rotina }}">
+            </label>
+            <button class="btn" type="submit">Carregar rotina</button>
+          </form>
+
+          <a class="btn btn-ghost btn-mini" href="{{ url_for('web_exportar_relatorio_pdf', id_crianca=crianca_selecionada.id_crianca, data=data_rotina) }}">Exportar PDF</a>
+
+          {% if rotina_exibicao %}
+            <div class="rotina-meta">
+              <span><strong>Data:</strong> {{ rotina_exibicao.data_referencia }}</span>
+              <span><strong>ID crianca:</strong> {{ rotina_exibicao.id_crianca }}</span>
+            </div>
+
+            <article class="sentimento-card">
+              <p><strong>Sentimento do dia:</strong> {{ rotina_exibicao.sentimento_dia_info.completo }}</p>
+              <form class="sentimento-form" method="post" action="{{ url_for('web_salvar_sentimento_rotina') }}">
+                <input type="hidden" name="data" value="{{ rotina_exibicao.data_referencia }}">
+                {% for opcao in sentimentos_disponiveis %}
+                  <button
+                    class="btn btn-ghost btn-mini {% if rotina_exibicao.sentimento_dia == opcao.codigo %}is-selected{% endif %}"
+                    type="submit"
+                    name="sentimento"
+                    value="{{ opcao.codigo }}"
+                  >{{ opcao.emoji }} {{ opcao.label }}</button>
+                {% endfor %}
+                <button class="btn btn-ghost btn-mini" type="submit" name="sentimento" value="">Limpar</button>
+              </form>
+            </article>
+
+            <div class="resumo-grid">
+              <article class="resumo-item">
+                <small>Total de itens</small>
+                <strong>{{ rotina_exibicao.resumo.total_itens }}</strong>
+              </article>
+              <article class="resumo-item">
+                <small>Concluidos</small>
+                <strong>{{ rotina_exibicao.resumo.concluidos }}</strong>
+              </article>
+              <article class="resumo-item">
+                <small>Pendentes</small>
+                <strong>{{ rotina_exibicao.resumo.pendentes }}</strong>
+              </article>
+              <article class="resumo-item">
+                <small>Nao realizados</small>
+                <strong>{{ rotina_exibicao.resumo.nao_realizados }}</strong>
+              </article>
+              <article class="resumo-item resumo-item-accent">
+                <small>Percentual concluido</small>
+                <strong>{{ "%.1f"|format(rotina_exibicao.resumo.percentual_concluido) }}%</strong>
+              </article>
+            </div>
+
+            <h3>Itens da rotina</h3>
+            <ul class="rotina-itens">
+              {% for item in rotina_exibicao.itens %}
+                {% set status_lower = item.status|lower %}
+                <li class="rotina-item">
+                  <div>
+                    <p class="rotina-item-nome">{{ item.nome }}</p>
+                    <p class="rotina-item-horario">Horario: {{ item.horario }}</p>
+                    {% if item.observacao %}
+                      <p class="rotina-item-observacao">Observacao: {{ item.observacao }}</p>
+                    {% endif %}
+                    {% if item.tags %}
+                      <div class="tag-row">
+                        {% for tag in item.tags %}
+                          <span class="tag-pill">#{{ tag }}</span>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                    {% if item.alerta_tempo_texto %}
+                      <p class="tempo-alert {% if item.alerta_tempo_tipo == 'late' %}tempo-late{% else %}tempo-soon{% endif %}">{{ item.alerta_tempo_texto }}</p>
+                    {% endif %}
+                  </div>
+                  <div class="rotina-item-acoes">
+                    <span class="status-pill {% if 'concl' in status_lower %}status-ok{% elif 'realiz' in status_lower %}status-nao-realizado{% else %}status-pendente{% endif %}">{{ item.status }}</span>
+                    <div class="status-actions-wrap">
+                      <form class="status-form" method="post" action="{{ url_for('web_alterar_status_item_rotina') }}">
+                        <input type="hidden" name="data" value="{{ rotina_exibicao.data_referencia }}">
+                        <input type="hidden" name="indice" value="{{ loop.index0 }}">
+                        <button class="btn btn-status" type="submit" name="status" value="1">Realizado</button>
+                        <button class="btn btn-ghost btn-status" type="submit" name="status" value="2">Nao realizado</button>
+                        <button class="btn btn-ghost btn-status" type="submit" name="status" value="3">Pendente</button>
+                      </form>
+                      <form class="status-form" method="post" action="{{ url_for('web_remover_item_rotina') }}">
+                        <input type="hidden" name="data" value="{{ rotina_exibicao.data_referencia }}">
+                        <input type="hidden" name="indice" value="{{ loop.index0 }}">
+                        <button class="btn btn-danger btn-status" type="submit">Remover</button>
+                      </form>
+                      <form class="status-form note-form" method="post" action="{{ url_for('web_salvar_observacao_item_rotina') }}">
+                        <input type="hidden" name="data" value="{{ rotina_exibicao.data_referencia }}">
+                        <input type="hidden" name="indice" value="{{ loop.index0 }}">
+                        <input name="observacao" value="{{ item.observacao }}" placeholder="Observacao rapida">
+                        <input name="tags" value="{{ item.tags|join(', ') }}" placeholder="tags: rotina, escola">
+                        <button class="btn btn-ghost btn-status" type="submit">Salvar nota + tags</button>
+                      </form>
+                    </div>
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="empty-state">Sem rotina carregada para a data selecionada.</p>
+          {% endif %}
+        </section>
+
+        {% if lembretes_rotina %}
+          <section class="card card-wide reminder-card">
+            <h2>Lembretes de hoje</h2>
+            <ul class="list">
+              {% for lembrete in lembretes_rotina %}
+                <li>{{ lembrete.horario }} - {{ lembrete.nome }} ainda esta pendente.</li>
+              {% endfor %}
+            </ul>
+          </section>
+        {% endif %}
+
+        {% if evolucao_periodo %}
+          <section class="card">
+            <h2>Evolucao por periodo</h2>
+
+            <article class="periodo-card">
+              <h3>{{ evolucao_periodo.semana.titulo }} ({{ evolucao_periodo.semana.inicio }} a {{ evolucao_periodo.semana.fim }})</h3>
+              <p>{{ '%.1f'|format(evolucao_periodo.semana.percentual_concluido) }}% concluido | {{ evolucao_periodo.semana.concluidos }}/{{ evolucao_periodo.semana.total_itens }} itens</p>
+              <div class="progress"><span style="width: {{ '%.1f'|format(evolucao_periodo.semana.percentual_concluido) }}%"></span></div>
+            </article>
+
+            <article class="periodo-card">
+              <h3>{{ evolucao_periodo.mes.titulo }} ({{ evolucao_periodo.mes.inicio }} a {{ evolucao_periodo.mes.fim }})</h3>
+              <p>{{ '%.1f'|format(evolucao_periodo.mes.percentual_concluido) }}% concluido | {{ evolucao_periodo.mes.concluidos }}/{{ evolucao_periodo.mes.total_itens }} itens</p>
+              <div class="progress"><span style="width: {{ '%.1f'|format(evolucao_periodo.mes.percentual_concluido) }}%"></span></div>
+            </article>
+          </section>
+        {% endif %}
+
+        <section class="card">
+          <h2>Sugestoes de rotina (TEA)</h2>
+          <ul class="list">
+            {% for sugestao in sugestoes_rotina %}
+              <li>{{ sugestao.nome }} ({{ sugestao.cat }})</li>
+            {% endfor %}
+          </ul>
+          <p class="switch-row">Dica: use os nomes sugeridos ao adicionar uma nova tarefa.</p>
+        </section>
+      {% else %}
+        <section class="card card-wide">
+          <h2>Rotina</h2>
+          <p>Selecione uma criança na seção "Criancas" para acessar a rotina.</p>
+        </section>
+      {% endif %}
+    {% endif %}
+
+    {% if secao == 'perfil' %}
+      {% if perfil_visualizacao %}
+        <section class="card">
+          <h2>Acoes do perfil</h2>
+          <details class="toggle-panel">
+            <summary class="btn btn-ghost toggle-summary">Editar responsavel</summary>
+            <form class="form-grid" method="post" action="{{ url_for('web_editar_responsavel') }}">
+              <label>Novo nome
+                <input name="nome" placeholder="Deixe vazio para manter {{ perfil_visualizacao.responsavel.nome }}">
+              </label>
+              <label>Nova data nascimento
+                <input name="data_nascimento" placeholder="DD/MM/AAAA">
+              </label>
+              <label>Novo email
+                <input name="email" type="email" placeholder="Deixe vazio para manter {{ perfil_visualizacao.responsavel.email }}">
+              </label>
+              <button class="btn" type="submit">Salvar dados do responsavel</button>
+            </form>
+          </details>
+
+          <details class="toggle-panel">
+            <summary class="btn btn-ghost toggle-summary">Perfil sensorial</summary>
+            {% if criancas_responsavel %}
+              <form class="form-grid" method="post" action="{{ url_for('web_salvar_perfil_sensorial') }}">
+                <label>Crianca
+                  <select name="id_crianca" required>
+                    {% for item in criancas_responsavel %}
+                      <option value="{{ item.id_crianca }}" {% if crianca_selecionada and crianca_selecionada.id_crianca == item.id_crianca %}selected{% endif %}>{{ item.nome }} (ID {{ item.id_crianca }})</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                <label>Hipersensibilidades
+                  <textarea name="hipersensibilidades" placeholder="Ex: som alto, luz forte"></textarea>
+                </label>
+                <label>Hipossensibilidades
+                  <textarea name="hipossensibilidades" placeholder="Ex: dor, frio"></textarea>
+                </label>
+                <label>Hiperfocos
+                  <textarea name="hiperfocos" placeholder="Ex: dinossauros, planetas"></textarea>
+                </label>
+                <label>Seletividade alimentar
+                  <textarea name="seletividade_alimentar" placeholder="Ex: textura, cor do alimento"></textarea>
+                </label>
+                <label>Estrategias de regulacao
+                  <textarea name="estrategias_regulacao" placeholder="Ex: fones, canto calmo"></textarea>
+                </label>
+                <button class="btn" type="submit">Salvar perfil sensorial</button>
+              </form>
+              <p class="switch-row">Dica: separe os itens com virgula, ponto e virgula ou quebra de linha.</p>
+            {% else %}
+              <p>Cadastre uma crianca primeiro para criar o perfil sensorial.</p>
+            {% endif %}
+          </details>
+        </section>
+
+        <section class="card card-wide">
+          <h2>Perfil do responsavel</h2>
+          <p><strong>Nome:</strong> {{ perfil_visualizacao.responsavel.nome }}</p>
+          <p><strong>ID:</strong> {{ perfil_visualizacao.responsavel.id_responsavel }}</p>
+          <p><strong>Email:</strong> {{ perfil_visualizacao.responsavel.email }}</p>
+          <p><strong>Data de nascimento:</strong> {{ perfil_visualizacao.responsavel.data_nascimento }}</p>
+          <p><strong>Criancas cadastradas:</strong> {{ perfil_visualizacao.quantidade_criancas }}</p>
+
+          <h3>Criancas</h3>
+          <ul class="list">
+            {% if perfil_visualizacao.criancas %}
+              {% for item in perfil_visualizacao.criancas %}
+                <li>
+                  {{ item.nome }} (ID: {{ item.id_crianca }}) - Nivel {{ item.nivel_suporte }} - Nascimento {{ item.data_nascimento }}
+                  {% if item.perfil_sensorial %}
+                    <br>
+                    Perfil sensorial: cadastrado.
+                    <br>
+                    Hipersensibilidades: {{ item.perfil_sensorial.hipersensibilidades | join(', ') if item.perfil_sensorial.hipersensibilidades else 'Nao informado' }}
+                    <br>
+                    Hipossensibilidades: {{ item.perfil_sensorial.hipossensibilidades | join(', ') if item.perfil_sensorial.hipossensibilidades else 'Nao informado' }}
+                    <br>
+                    Hiperfocos: {{ item.perfil_sensorial.hiperfocos | join(', ') if item.perfil_sensorial.hiperfocos else 'Nao informado' }}
+                    <br>
+                    Seletividade alimentar: {{ item.perfil_sensorial.seletividade_alimentar | join(', ') if item.perfil_sensorial.seletividade_alimentar else 'Nao informado' }}
+                    <br>
+                    Estrategias de regulacao: {{ item.perfil_sensorial.estrategias_regulacao | join(', ') if item.perfil_sensorial.estrategias_regulacao else 'Nao informado' }}
+                  {% else %}
+                    <br>
+                    Perfil sensorial: nao cadastrado.
+                  {% endif %}
+                </li>
+              {% endfor %}
+            {% else %}
+              <li>Nenhuma crianca cadastrada para este responsavel.</li>
+            {% endif %}
+          </ul>
+        </section>
+      {% else %}
+        <section class="card card-wide">
+          <h2>Perfil</h2>
+          <p>Faça login/cadastro para visualizar seu perfil.</p>
+        </section>
+      {% endif %}
+    {% endif %}
+  </main>
+</body>
+</html>
