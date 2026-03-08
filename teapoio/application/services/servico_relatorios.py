@@ -33,6 +33,7 @@ class ServicoRelatorios:
 		self._repositorio = repositorio
 
 	def carregar_estado_inicial(self) -> dict[str, Any]:
+		"""Carrega o estado inicial da aplicacao usando o repositorio."""
 		return self._repositorio.carregar_estado()
 
 	def salvar_estado_atual(
@@ -43,6 +44,7 @@ class ServicoRelatorios:
 		perfil: Perfil | None,
 		data_calendario: date,
 	) -> None:
+		"""Salva o estado atual da aplicacao usando o repositorio."""
 		self._repositorio.salvar_estado(
 			responsaveis=responsaveis,
 			criancas=criancas,

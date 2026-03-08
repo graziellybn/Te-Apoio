@@ -10,6 +10,7 @@ class ServicoCadastro:
 
     @staticmethod
     def cadastrar_responsavel(nome: str, data_nascimento: str, email: str) -> tuple[Responsavel, Perfil]:
+        """Cria um novo responsável e seu perfil associado."""
         responsavel = Responsavel(nome, data_nascimento, email)
         perfil = Perfil(responsavel=responsavel)
         return responsavel, perfil
@@ -19,6 +20,7 @@ class ServicoCadastro:
         responsaveis: list[Responsavel],
         id_informado: str,
     ) -> Responsavel | None:
+        """Valida a existência de um responsável pelo ID informado."""
         return next(
             (r for r in responsaveis if r.id_responsavel == id_informado),
             None,
@@ -31,6 +33,7 @@ class ServicoCadastro:
         data_nascimento: str,
         nivel_suporte: int,
     ) -> Crianca:
+        """Cria uma nova criança associada a um responsável."""
         return Crianca(
             nome=nome,
             data_nascimento=data_nascimento,
@@ -45,6 +48,7 @@ class ServicoCadastro:
         data_nascimento: str = "",
         email: str = "",
     ) -> Responsavel:
+        """Edita os dados de um responsável existente."""
         if nome:
             responsavel.nome = Responsavel._validar_nome(nome)
 
@@ -69,6 +73,7 @@ class ServicoCadastro:
         data_nascimento: str = "",
         nivel_suporte: str = "",
     ) -> Crianca:
+        """Edita os dados de uma criança existente."""
         if nome:
             crianca.nome = Responsavel._validar_nome(nome)
 
