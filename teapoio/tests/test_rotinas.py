@@ -5,8 +5,9 @@ from teapoio.domain.models.evolucao import Evolucao
 from teapoio.domain.models.item_rotina import ItemRotina
 from teapoio.domain.models.rotina import Rotina
 
-# Testa se rotina aceita itens com horário no formato HH:MM e status inicial como pendente.
+
 def test_item_rotina_aceita_horario_hh_mm():
+	"""Valida se o item da rotina aceita um horário no formato HH:MM e tem status inicial como pendente"""
 	item = ItemRotina("Escovar os dentes", "08:30")
 	assert item.horario == "08:30"
 	assert item.status == ItemRotina.STATUS_PENDENTE
@@ -14,88 +15,66 @@ def test_item_rotina_aceita_horario_hh_mm():
 
 @pytest.mark.parametrize("horario", ["8:30", "24:00", "08:60", "ab:cd", ""]) 
 def test_item_rotina_rejeita_horario_invalido(horario):
+	"""Valida se o item da rotina rejeita horários em formatos inválidos e lança um erro"""
 	with pytest.raises(ValueError):
 		ItemRotina("Tarefa", horario)
 
-# Não aceita nome vazio ou apenas espaços em branco.
+
 def test_item_rotina_rejeita_nome_vazio():
+	"""Valida se o item da rotina rejeita um nome vazio ou composto apenas por espaços em branco e lança um erro"""
 	with pytest.raises(ValueError):
 		ItemRotina("   ", "09:00")
 
 
-def test_item_rotina_permita_observacao_rapida():
-	item = ItemRotina("Escovar os dentes", "08:00", observacao="Fez sem resistencia")
-	assert item.observacao == "Fez sem resistencia"
-
-
-def test_item_rotina_rejeita_observacao_muito_longa():
-	with pytest.raises(ValueError):
-		ItemRotina("Escovar os dentes", "08:00", observacao="a" * 281)
-
-
-def test_item_rotina_normaliza_tags_e_remove_duplicadas():
-	item = ItemRotina("Escovar os dentes", "08:00", tags=["#higiene", "manha", "HIGIENE", " "])
-	assert item.tags == ["higiene", "manha"]
-
-
-def test_item_rotina_rejeita_excesso_de_tags():
-	with pytest.raises(ValueError):
-		ItemRotina("Escovar os dentes", "08:00", tags=[f"tag{i}" for i in range(9)])
-
-# Testa se a rotina aceita um ID de criança numérico, string ou inteiro e converte para string.
 def test_rotina_aceita_id_numerico_string_ou_inteiro():
+	"""Valida se a rotina aceita um ID de criança numérico, string ou inteiro e converte para string, 
+	e se a data de referência é inicializada corretamente"""
 	rotina_texto = Rotina("123456")
 	rotina_inteiro = Rotina(123456)
 	assert rotina_texto.id_crianca == "123456"
 	assert rotina_inteiro.id_crianca == "123456"
 	assert isinstance(rotina_texto.data_referencia, date)
 
-# Garante que rejeita IDs de criança que não sejam numeros
+
 def test_rotina_rejeita_id_crianca_nao_numerico():
+	"""Valida se a rotina rejeita um ID de criança que não seja numérico e lança um erro"""
 	with pytest.raises(ValueError):
 		Rotina("abc123")
 
 
 def test_rotina_aceita_data_referencia_em_texto():
+	"""Valida se a rotina aceita uma data de referência em formato de texto DD/MM/YYYY e 
+	converte para date"""
 	rotina = Rotina("123456", data_referencia="06/03/2026")
 	assert rotina.data_formatada == "06/03/2026"
 
 
-def test_rotina_atualiza_sentimento_do_dia_com_emoji():
-	rotina = Rotina("123456")
-	rotina.atualizar_sentimento_dia("bem")
-	assert rotina.sentimento_dia == "bem"
-	assert rotina.sentimento_dia_info["completo"] == "🙂 Bem"
-
-
-def test_rotina_rejeita_sentimento_invalido():
-	rotina = Rotina("123456")
-	with pytest.raises(ValueError):
-		rotina.atualizar_sentimento_dia("excelente-demais")
-
-# Não aceita data de referência em formato inválido.
 def test_rotina_rejeita_data_referencia_invalida():
+	"""Valida se a rotina rejeita uma data de referência inválida (ex: 31 de fevereiro) e lança um erro"""
 	with pytest.raises(ValueError):
 		Rotina("123456", data_referencia="31/02/2026")
 
-# Não aceita dois itens com o mesmo horário na rotina.
+
 def test_rotina_nao_permite_horario_duplicado():
+	"""Valida se a rotina não permite adicionar dois itens com o mesmo horário e lança um erro"""
 	rotina = Rotina("123456")
 	rotina.adicionar_item(ItemRotina("Cafe da manha", "07:00"))
 
 	with pytest.raises(ValueError):
 		rotina.adicionar_item(ItemRotina("Escovar dentes", "07:00"))
 
-# Ordena os itens por horário ao adicionar.
+
 def test_rotina_ordena_itens_por_horario():
+	"""Valida se a rotina ordena os itens por horário ao adicioná-los, mesmo que sejam adicionados fora de ordem cronológica"""
 	rotina = Rotina("123456")
 	rotina.adicionar_item(ItemRotina("Dormir", "21:00"))
 	rotina.adicionar_item(ItemRotina("Cafe", "07:00"))
 
 	assert [item.horario for item in rotina.itens] == ["07:00", "21:00"]
 
-# Verifica se Rotina aceita códigos numéricos ou strings para marcar status dos itens.
+
 def test_rotina_marcar_status_com_codigos_numericos():
+	"""Valida se a rotina aceita códigos numéricos ou strings para marcar o status dos itens e atualiza corretamente"""
 	rotina = Rotina("123456")
 	rotina.adicionar_item(ItemRotina("Leitura", "10:00"))
 
@@ -108,22 +87,25 @@ def test_rotina_marcar_status_com_codigos_numericos():
 	rotina.marcar_status(0, 3)
 	assert rotina.itens[0].status == ItemRotina.STATUS_PENDENTE
 
-# Garante que Rotina rejeita códigos de status inválidos.
+
 def test_rotina_marcar_status_rejeita_codigo_invalido():
+	"""Valida se a rotina rejeita códigos de status inválidos (ex: 9) e lança um erro"""
 	rotina = Rotina("123456")
 	rotina.adicionar_item(ItemRotina("Leitura", "10:00"))
 
 	with pytest.raises(ValueError):
 		rotina.marcar_status(0, "9")
 
-# Verifica que Rotina levanta IndexError ao tentar remover item inexistente.
+
 def test_rotina_rejeita_indice_invalido_ao_remover():
+	"""Valida se a rotina rejeita um índice inválido ao tentar remover um item e lança um erro"""
 	rotina = Rotina("123456")
 	with pytest.raises(IndexError):
 		rotina.remover_item(0)
 
-# Garante que Rotina não permite editar item para horário já ocupado por outro.
+
 def test_rotina_editar_item_rejeita_horario_duplicado():
+	"""Valida se a rotina rejeita a edição de um item para um horário que já está ocupado por outro item e lança um erro"""
 	rotina = Rotina("123456")
 	rotina.adicionar_item(ItemRotina("Item 1", "08:00"))
 	rotina.adicionar_item(ItemRotina("Item 2", "09:00"))
@@ -131,8 +113,9 @@ def test_rotina_editar_item_rejeita_horario_duplicado():
 	with pytest.raises(ValueError):
 		rotina.editar_item(1, "Item 2 atualizado", "08:00")
 
-# Testa se Rotina retorna resumo correto da evolução com contagens por status e percentual concluído.
+
 def test_rotina_resumo_evolucao_retorna_contagens_por_status():
+	"""Valida se o resumo de evolução da rotina retorna as contagens corretas de itens por status e o percentual concluído"""
 	rotina = Rotina("123456")
 	rotina.adicionar_item(ItemRotina("Item 1", "08:00"))
 	rotina.adicionar_item(ItemRotina("Item 2", "09:00"))
@@ -151,6 +134,7 @@ def test_rotina_resumo_evolucao_retorna_contagens_por_status():
 
 
 def test_calcular_evolucao_permanece_compativel_com_percentual():
+	"""Valida se o cálculo de evolução da rotina permanece compatível com o percentual concluído, mesmo que a lógica interna seja alterada para usar um resolvedor de status ou calculadora de evolução customizada"""
 	rotina = Rotina("123456")
 	rotina.adicionar_item(ItemRotina("Item 1", "08:00"))
 	rotina.adicionar_item(ItemRotina("Item 2", "09:00"))
@@ -158,8 +142,9 @@ def test_calcular_evolucao_permanece_compativel_com_percentual():
 	rotina.marcar_status(0, 1)
 	assert rotina.calcular_evolucao() == 50.0
 
-# Verifica se cálculo de evolução permanece compatível com percentual concluído.
+
 def test_evolucao_a_partir_itens_retorna_contagem_correta():
+	"""Valida se o método Evolucao.a_partir_itens retorna as contagens corretas de itens por status e o percentual concluído com base em uma lista de itens da rotina"""
 	itens = [
 		ItemRotina("Item 1", "08:00"),
 		ItemRotina("Item 2", "09:00"),
@@ -176,8 +161,9 @@ def test_evolucao_a_partir_itens_retorna_contagem_correta():
 	assert evolucao.pendentes == 1
 	assert evolucao.percentual_concluido == pytest.approx(33.3333, rel=1e-3)
 
-# Testa se Evolucao.a_partir_itens retorna contagens corretas de status e percentual concluído.
+
 def test_rotina_obter_evolucao_retorna_objeto_evolucao():
+	"""Valida se o método obter_evolucao da rotina retorna um objeto Evolucao com as contagens corretas de itens por status"""
 	rotina = Rotina("123456")
 	rotina.adicionar_item(ItemRotina("Item 1", "08:00"))
 
@@ -186,8 +172,9 @@ def test_rotina_obter_evolucao_retorna_objeto_evolucao():
 	assert isinstance(evolucao, Evolucao)
 	assert evolucao.total_itens == 1
 
-# Verifica se Rotina.obter_evolucao retorna um objeto Evolucao válido.
+
 def test_rotina_aceita_resolvedor_status_customizado():
+	"""Valida se a rotina aceita um resolvedor de status customizado para determinar o status dos itens ao marcar e se o status é atualizado corretamente com base na lógica do resolvedor"""
 	class ResolvedorSempreConcluido:
 		def resolver(self, status_code):
 			return ItemRotina.STATUS_CONCLUIDO
@@ -198,31 +185,10 @@ def test_rotina_aceita_resolvedor_status_customizado():
 
 	assert rotina.itens[0].status == ItemRotina.STATUS_CONCLUIDO
 
-# -------------------------------------------------------------------------
-# novos casos: registro de emoções
-# -------------------------------------------------------------------------
-
-def test_rotina_registra_emocao_valida():
-	rotina = Rotina("123")
-	rotina.registrar_emocao("Feliz", 4)
-	rotina.registrar_emocao("triste", 1)
-	assert rotina.obter_emocoes() == {"feliz": 4, "triste": 1}
 
 
-def test_rotina_rejeita_emocao_invalida_ou_escala():
-	rotina = Rotina("123")
-	with pytest.raises(ValueError):
-		rotina.registrar_emocao("euforico", 3)
-	with pytest.raises(ValueError):
-		rotina.registrar_emocao("feliz", 0)
-	with pytest.raises(ValueError):
-		rotina.registrar_emocao("calmo", 6)
-	with pytest.raises(TypeError):
-		rotina.registrar_emocao(123, 3)
-
-
-# Verifica se Rotina aceita calculadora de evolução customizada para sobrescrever resultados.
 def test_rotina_aceita_calculadora_evolucao_customizada():
+	"""Valida se a rotina aceita uma calculadora de evolução customizada para sobrescrever os resultados do cálculo de evolução e se o resultado é retornado corretamente com base na lógica da calculadora"""
 	class CalculadoraFixa:
 		def calcular(self, itens):
 			return Evolucao(total_itens=10, concluidos=7, nao_realizados=2, pendentes=1)

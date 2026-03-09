@@ -9,10 +9,9 @@ from teapoio.domain.models.responsavel import Responsavel
 from teapoio.domain.models.rotina import Rotina
 from teapoio.infrastructure.persistence.Relatorio import RepositorioRelatorio
 
-#  Testa se o repositório salva corretamente o estado completo (responsável, criança,
-# perfil sensorial e rotina) e depois carrega os dados mantendo a integridade.
 
 def test_repositorio_salva_e_carrega_estado_completo(tmp_path):
+    """Valida se o repositório salva e carrega o estado completo mantendo a integridade dos dados"""
     arquivo = tmp_path / "estado.json"
     repositorio = RepositorioRelatorio(caminho_arquivo=arquivo)
 
@@ -84,8 +83,9 @@ def test_repositorio_salva_e_carrega_estado_completo(tmp_path):
     assert rotina_carregada.itens[0].tags == ["higiene", "manha"]
     assert perfil_carregado.obter_perfil_sensorial(crianca.id_crianca) is not None
 
-#  Testa se o repositório retorna estado vazio quando o arquivo JSON está inválido
+
 def test_repositorio_json_invalido_retorna_estado_vazio(tmp_path):
+    """Valida se o repositório retorna um estado vazio quando o arquivo JSON está inválido"""
     arquivo = tmp_path / "estado_invalido.json"
     arquivo.write_text("{ json-invalido", encoding="utf-8")
 
@@ -100,6 +100,7 @@ def test_repositorio_json_invalido_retorna_estado_vazio(tmp_path):
 
 
 def test_repositorio_inicializa_arquivo_vazio_com_json_valido(tmp_path):
+    """Valida se o repositório inicializa um arquivo vazio com um JSON válido e retorna um estado vazio ao carregar"""
     arquivo = tmp_path / "estado_vazio.json"
     arquivo.write_text("", encoding="utf-8")
 
@@ -120,8 +121,9 @@ def test_repositorio_inicializa_arquivo_vazio_com_json_valido(tmp_path):
     assert payload["perfil"] is None
     assert isinstance(payload["data_calendario"], str)
 
-# Testa se o repositório salva um aviso quando o responsável não possui nenhuma criança cadastrada.
+
 def test_repositorio_salva_aviso_quando_responsavel_nao_tem_crianca(tmp_path):
+    """Valida se o repositório salva um aviso quando o responsável não possui nenhuma criança cadastrada"""
     arquivo = tmp_path / "estado_sem_crianca.json"
     repositorio = RepositorioRelatorio(caminho_arquivo=arquivo)
 
@@ -141,6 +143,7 @@ def test_repositorio_salva_aviso_quando_responsavel_nao_tem_crianca(tmp_path):
     )
 
     with arquivo.open("r", encoding="utf-8") as arquivo_json:
+        """Valida se o repositório salva um aviso quando o responsável não possui nenhuma criança cadastrada"""
         payload = json.load(arquivo_json)
 
     responsavel_json = payload["responsaveis"][0]

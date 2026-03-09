@@ -5,8 +5,9 @@ import pytest
 
 # TESTES PARA O SERVICO DE CADASTRO
 # =======================================
-# Testa se o serviço de cadastro cria corretamente um responsável e seu perfil vinculado.
+
 def test_servico_cadastro_cria_responsavel_e_perfil():
+    """Valida se o serviço de cadastro cria um responsável e um perfil sensorial vinculado corretamente e retorna os objetos correspondentes"""
     responsavel, perfil = ServicoCadastro.cadastrar_responsavel(
         nome="Maria Silva",
         data_nascimento="01/01/1980",
@@ -17,9 +18,10 @@ def test_servico_cadastro_cria_responsavel_e_perfil():
     assert isinstance(responsavel, Responsavel)
     assert perfil.responsavel.id_responsavel == responsavel.id_responsavel
 
-# Testa se o serviço de cadastro consegue validar e encontrar um responsável pelo ID.
+#
 
 def test_servico_cadastro_valida_responsavel_por_id():
+    """Valida se o serviço de cadastro consegue validar e encontrar um responsável pelo ID e retorna o objeto correto"""
     responsavel, _ = ServicoCadastro.cadastrar_responsavel(
         nome="Carlos Souza",
         data_nascimento="01/01/1985",
@@ -34,8 +36,9 @@ def test_servico_cadastro_valida_responsavel_por_id():
 
     assert encontrado is responsavel
 
-# Testa se o serviço de cadastro cria uma criança vinculada ao responsável.
+
 def test_servico_cadastro_cria_crianca():
+    """Valida se o serviço de cadastro cria uma criança vinculada ao responsável e retorna o objeto correto"""
     responsavel, _ = ServicoCadastro.cadastrar_responsavel(
         nome="Joao Silva",
         data_nascimento="01/01/1980",
@@ -53,8 +56,9 @@ def test_servico_cadastro_cria_crianca():
     assert isinstance(crianca, Crianca)
     assert crianca.id_responsavel == responsavel.id_responsavel
 
-# Testa se o serviço de cadastro permite editar os dados de um responsável.
+
 def test_servico_cadastro_edita_responsavel():
+    """Valida se o serviço de cadastro permite editar os dados de um responsável."""
     responsavel, _ = ServicoCadastro.cadastrar_responsavel(
         nome="Maria Silva",
         data_nascimento="01/01/1980",
@@ -71,8 +75,9 @@ def test_servico_cadastro_edita_responsavel():
     assert responsavel.nome == "Maria Souza"
     assert responsavel.email == "maria.souza@example.com"
 
-#  Testa se o serviço de cadastro permite editar os dados de uma criança.
+
 def test_servico_cadastro_edita_crianca():
+    """Valida se o serviço de cadastro permite editar os dados de uma criança."""
     responsavel, _ = ServicoCadastro.cadastrar_responsavel(
         nome="Carlos Souza",
         data_nascimento="01/01/1980",

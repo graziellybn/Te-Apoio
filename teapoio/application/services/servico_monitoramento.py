@@ -6,9 +6,11 @@ class ServicoMonitoramento:
 
 	@staticmethod
 	def obter_resumo_rotina(rotina: Rotina) -> dict:
+		"""Gera um resumo da evolução da rotina, incluindo percentual concluído e status dos itens."""
 		return rotina.obter_resumo_evolucao()
 
 	def gerar_linhas_painel_rotina(self, rotina: Rotina, nome_crianca: str) -> list[str]:
+		"""Gera as linhas de texto para exibir no painel de monitoramento da rotina."""
 		linhas = [f"\n--- Rotina de {nome_crianca} ({rotina.data_formatada}) ---"]
 
 		if not rotina.itens:

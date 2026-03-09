@@ -6,6 +6,11 @@ from teapoio.domain.models.rotina import Rotina
 # quando não há itens cadastrados. Deve exibir o título da rotina com o nome
 # da criança e a mensagem 'Nenhum item cadastrado.
 def test_servico_monitoramento_gera_painel_sem_itens():
+    """
+    Valida se o serviço de monitoramento gera corretamente o painel de rotina quando não há 
+    itens cadastrados. Quando não há itens cadastrados, deve exibir o título da rotina com o nome
+    da criança e a mensagem 'Nenhum item cadastrado.
+    """
     servico = ServicoMonitoramento()
     rotina = Rotina("123456")
 
@@ -14,11 +19,14 @@ def test_servico_monitoramento_gera_painel_sem_itens():
     assert "Rotina de Ana" in linhas[0]
     assert "Nenhum item cadastrado." in linhas
 
-# Testa se o serviço de monitoramento gera corretamente o painel de rotina
-# quando há itens cadastrados e evolução registrada. Deve exibir a porcentagem
-# concluída e o status de pendências e não realizados.
+
 
 def test_servico_monitoramento_gera_painel_com_evolucao():
+    """
+    Testa se o serviço de monitoramento gera corretamente o painel de rotina
+    quando há itens cadastrados e evolução registrada. Deve exibir a porcentagem
+    concluída e o status de pendências e não realizados.
+    """
     servico = ServicoMonitoramento()
     rotina = Rotina("123456")
     rotina.adicionar_item(ItemRotina("Item 1", "08:00"))

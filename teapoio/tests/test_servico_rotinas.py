@@ -6,8 +6,10 @@ from teapoio.domain.models.rotina import Rotina
 
 # TESTES PARA O SERVICO DE ROTINAS
 # =======================================
-# Testa se uma nova rotina é criada quando não existe nenhuma para a criança e data informadas.
+
 def test_servico_obter_ou_criar_rotina_cria_nova_quando_nao_existe():
+    """Valida se o serviço de rotinas cria uma nova rotina quando não existe nenhuma para a 
+    criança e data informadas. Deve retornar a nova rotina criada e um indicador de que foi criada."""
     servico = ServicoRotinas()
     rotinas: list[Rotina] = []
     data_ref = date.today()
@@ -21,6 +23,7 @@ def test_servico_obter_ou_criar_rotina_cria_nova_quando_nao_existe():
 
 #  Testa se uma rotina existente é reutilizada quando já foi criada para a mesma criança e data.
 def test_servico_obter_ou_criar_rotina_reutiliza_existente():
+    """Valida se o serviço de rotinas reutiliza uma rotina existente quando já foi criada para a mesma criança e data."""
     servico = ServicoRotinas()
     rotinas: list[Rotina] = []
     data_ref = date.today()
@@ -32,8 +35,9 @@ def test_servico_obter_ou_criar_rotina_reutiliza_existente():
     assert primeira is segunda
     assert len(rotinas) == 1
 
-#  Testa se é possível adicionar um item à rotina e marcar seu status como concluído.
+
 def test_servico_adicionar_item_e_marcar_status():
+    """Testa se é possível adicionar um item à rotina e marcar seu status como concluído."""
     servico = ServicoRotinas()
     rotina = Rotina("123456", data_referencia=date.today())
 
@@ -44,9 +48,10 @@ def test_servico_adicionar_item_e_marcar_status():
     assert item.nome == "Escovar os dentes"
     assert status == ItemRotina.STATUS_CONCLUIDO
 
-#   Testa se o serviço de rotinas aceita fábricas customizadas para criar rotinas e itens.
+
 
 def test_servico_aceita_fabricas_customizadas():
+    """Valida se o serviço de rotinas aceita fábricas customizadas para criar rotinas e itens."""
     class FabricaItemFake:
         def criar(
             self,
