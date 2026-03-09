@@ -30,6 +30,45 @@ As camadas de domínio não dependem das camadas superiores.
 
 ---
 
+## 🚀 Backend Flask (API)
+
+O projeto agora pode ser executado como backend HTTP com Flask, reutilizando as regras de dominio e os servicos da CLI.
+
+### Executar
+
+```bash
+pip install -r requirements.txt
+python -m teapoio.infrastructure.main
+```
+
+A API sera iniciada por padrao em `http://127.0.0.1:5000`.
+
+### Variaveis de ambiente opcionais
+
+- `TEAPOIO_HOST` (padrao: `127.0.0.1`)
+- `TEAPOIO_PORT` (padrao: `5000`)
+- `TEAPOIO_DEBUG` (`1` ou `0`, padrao: `1`)
+
+### Rotas principais
+
+- `GET /health`
+- `GET /responsaveis`
+- `POST /responsaveis`
+- `GET /responsaveis/<id_responsavel>`
+- `GET /responsaveis/<id_responsavel>/criancas`
+- `POST /responsaveis/<id_responsavel>/criancas`
+- `PATCH /criancas/<id_crianca>`
+- `DELETE /criancas/<id_crianca>`
+- `PUT /criancas/<id_crianca>/perfil-sensorial`
+- `GET /criancas/<id_crianca>/perfil-sensorial`
+- `GET /rotinas/<id_crianca>?data=AAAA-MM-DD`
+- `POST /rotinas/<id_crianca>/itens`
+- `PATCH /rotinas/<id_crianca>/itens/<indice>/status`
+- `DELETE /rotinas/<id_crianca>/itens/<indice>?data=AAAA-MM-DD`
+- `GET /sugestoes-rotina`
+
+---
+
 ## 📋 Requisitos Funcionais (RF)
 
 - RF01 — Cadastro do responsável
@@ -138,49 +177,56 @@ Se existirem rotinas executadas no período, o relatório deve apresentar sínte
 ---
 ## 🗂 Estrutura de Pastas
 ```
+README.md
+requirements.txt
+teapoio_data.json
 teapoio/
-│
+├── __init__.py
 ├── application/
 │   └── services/
-│       ├── servico_conquistas.py
+│       ├── servico_cadastro.py
 │       ├── servico_monitoramento.py
+│       ├── servico_perfil.py
 │       ├── servico_relatorios.py
 │       └── servico_rotinas.py
-│
 ├── domain/
-│   ├── models/
-│   │   ├── conquista.py
-│   │   ├── crianca.py
-│   │   ├── evolucao.py
-│   │   ├── item_rotina.py
-│   │   ├── perfil_sensorial.py
-│   │   ├── pessoa.py
-│   │   ├── progresso_conquista.py
-│   │   ├── responsavel.py
-│   │   └── rotina.py
-│   │
-│   └── events/
-│       └── eventos.py
-│
+│   └── models/
+│       ├── calendario.py
+│       ├── crianca.py
+│       ├── evolucao.py
+│       ├── item_rotina.py
+│       ├── Perfil.py
+│       ├── perfil_sensorial.py
+│       ├── pessoa.py
+│       ├── responsavel.py
+│       └── rotina.py
 ├── infrastructure/
-│   │   └── main.py
-│   │
+│   ├── cli.py
+│   ├── flask_app.py
+│   ├── main.py
+│   ├── mixins/
+│   │   └── exportavel_json.py
 │   ├── persistence/
-│   │   └── repository.py
-│   │
-│   └── mixins/
-│       └── exportavel_json.py
-│
-├── tests/
-│   ├── test_conquista.py
-│   ├── test_eventos.py
-│   ├── test_relatorios.py
-│   └── test_rotinas.py
-│
-└── README.md
+│   │   └── Relatorio.py
+│   ├── static/
+│   │   └── style.css
+│   └── templates/
+│       └── index.html
+└── tests/
+    ├── test_calendario.py
+    ├── test_flask_api.py
+    ├── test_modelos.py
+    ├── test_persistencia.py
+    ├── test_relatorios.py
+    ├── test_rotinas.py
+    ├── test_servico_cadastro.py
+    ├── test_servico_monitoramento.py
+    ├── test_servico_perfil.py
+    └── test_servico_rotinas.py
 ```
-- **application/** → Orquestra lógica de uso, relatórios e serviços.  
-- **domain/** → Contém entidades, eventos e regras de negócio centrais.  
-- **infrastructure/** → Implementações concretas de acesso a dados.  
-- **tests/** → Testes unitários e de integração.  
-- **README.md** → Documentação principal do projeto.
+- **teapoio/application/** -> Camada de aplicação com os serviços e casos de uso.
+- **teapoio/domain/** -> Entidades e regras de negócio centrais do sistema.
+- **teapoio/infrastructure/** -> CLI, API Flask, persistência e recursos de interface.
+- **teapoio/tests/** -> Testes automatizados das regras, serviços e API.
+- **requirements.txt** -> Dependências do projeto.
+- **teapoio_data.json** -> Base de dados local em JSON utilizada pela aplicação.
