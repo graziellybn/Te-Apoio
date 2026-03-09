@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod # Usada para criar classes abstratas e méto
 import re # Importação do módulo de expressões regulares para validação de strings.
 
 
-# ----------------------------- INICIALIZAÇÃO + VALIDAÇÃO BÁSICA -----------------------------
+# ----------------------------- INICIALIZAÇÃO -----------------------------
 class Pessoa(ABC):
     """[SOLID: LSP, ISP] Classe base abstrata para tipos de pessoa."""
     

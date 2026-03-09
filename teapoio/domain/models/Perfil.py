@@ -1,10 +1,11 @@
-from __future__ import annotations
+from __future__ import annotations # Permite usar tipos da própria classe antes de serem definidos.
 
 from teapoio.domain.models.crianca import Crianca
-from teapoio.domain.models.perfil_sensorial import PerfilSensorial
+from teapoio.domain.models.perfil_sensorial import PerfilSensorial 
 from teapoio.domain.models.responsavel import Responsavel
 
 
+# ----------------------------- CLASSE DE PERFIL - INICIALIZAÇÃO + VALIDAÇÕES -----------------------------
 class Perfil:
 	def __init__(self, responsavel: Responsavel, criancas: list[Crianca] | None = None) -> None:
 		"""Inicializa o perfil do responsável, garantindo que seja válido e permitindo a associação 
@@ -16,6 +17,7 @@ class Perfil:
 		self._perfis_sensoriais: dict[str, PerfilSensorial] = {}
 
 
+#------------------------ MÉTODOS DE GERENCIAMENTO DE CRIANÇAS -------------------------------
 	def adicionar_crianca(self, crianca: Crianca) -> None:
 		"""Adiciona uma criança ao perfil, garantindo que seja válida e não exista duplicidade."""
 		if not isinstance(crianca, Crianca):
@@ -24,11 +26,10 @@ class Perfil:
 			return
 		self.criancas.append(crianca)
 
-
 	def buscar_crianca_por_id(self, id_crianca: str) -> Crianca | None:
-		"""Busca uma criança pelo ID, retornando a criança encontrada ou None."""
+		"""serve para localizar rapidamente a criança selecionada quando o usuário alterna de um perfil para outro, 
+		garantindo que o sistema saiba qual instância de Crianca está sendo manipulada.."""
 		return next((crianca for crianca in self.criancas if crianca.id_crianca == id_crianca), None)
-
 
 	def remover_crianca(self, id_crianca: str) -> bool:
 		"""Remove uma criança do perfil pelo ID, retornando True se removida ou False se não encontrada."""
@@ -40,6 +41,7 @@ class Perfil:
 		return True
 
 
+    #------------------------ MÉTODOS DE GERENCIAMENTO DE PERFIS SENSORIAIS -------------------------------
 	def adicionar_perfil_sensorial(self, perfil_sensorial: PerfilSensorial) -> None:
 		"""Adiciona ou atualiza o perfil sensorial de uma criança, garantindo que seja válido e vinculado 
 		a uma criança existente."""

@@ -6,13 +6,15 @@ if TYPE_CHECKING:
 	from teapoio.domain.models.rotina import Rotina
 
 
+
+#----------------------------- PROTOCOL (CONTRATO) -----------------------------
 class FabricaRotina(Protocol):
 	"""[SOLID: ISP, DIP] Contrato minimo para criar rotinas por data."""
 
 	def criar(self, id_crianca: str | int, data_referencia: date) -> "Rotina":
 		"""Cria uma rotina para a crianca na data informada."""
 
-
+#----------------------------- IMPLEMENTAÇÃO PADRÃO -----------------------------
 class FabricaRotinaPadrao:
 	"""[SOLID: OCP, DIP] Fabrica padrao desacoplada de calendario."""
 
@@ -22,6 +24,7 @@ class FabricaRotinaPadrao:
 		return Rotina(id_crianca=id_crianca, data_referencia=data_referencia)
 
 
+#----------------------------- CLASSE CALENDÁRIO ROTINA ----------------------------
 class CalendarioRotina:
 	"""[SOLID: SRP, DIP] Responsavel por selecao/validacao de datas de rotina."""
 
@@ -42,6 +45,8 @@ class CalendarioRotina:
 	}
 	CABECALHO_DIAS = "dom seg ter qua qui sex sab"
 
+
+  #------------------------ INICIALIZAÇÃO -------------------------------
 	def __init__(
 		self,
 		data_inicial: date | None = None,
@@ -54,12 +59,14 @@ class CalendarioRotina:
 		self._fabrica_rotina = fabrica_rotina or FabricaRotinaPadrao()
 
 
+#------------------------ PROPRIEDADES -------------------------------
 	@property
 	def data_selecionada(self) -> date:
 		"""Retorna a data atualmente selecionada."""
 		return self._data_selecionada
 	
 
+#------------------------ MÉTODOS DE SELEÇÃO DE DATA -------------------------------
 	def selecionar_data(self, dia: int, mes: int, ano: int) -> date:
 		"""Seleciona uma data específica, validando partes e evitando futuro."""
 		self._validar_partes_data(dia, mes, ano)
@@ -74,11 +81,14 @@ class CalendarioRotina:
 		self._data_selecionada = nova_data
 		return nova_data
 
+
 	def selecionar_hoje(self) -> date:
 		"""Seleciona automaticamente a data de hoje."""
 		self._data_selecionada = date.today()
 		return self._data_selecionada
 
+
+#------------------------ MÉTODOS DE EXIBIÇÃO -------------------------------
 	def exibir_mes(self, mes: int | None = None, ano: int | None = None) -> str:
 		"""Gera uma representação textual do calendário do mês/ano."""
 		mes_ref = mes or self._data_selecionada.month
@@ -92,10 +102,9 @@ class CalendarioRotina:
 		linhas = [titulo.center(21), self.CABECALHO_DIAS]
 		for semana in semanas:
 			linhas.append(" ".join(f"{dia:>3}" if dia else "   " for dia in semana))
-
 		return "\n".join(linhas)
 
-
+    #------------------------ MÉTODOS DE CRIAÇÃO DE ROTINA ----------------------
 	def criar_rotina_para_data(self, id_crianca: str | int) -> "Rotina":
 		"""Cria uma rotina para a criança na data atualmente selecionada."""
 		return self._fabrica_rotina.criar(
@@ -103,6 +112,8 @@ class CalendarioRotina:
 			data_referencia=self._data_selecionada,
 		)
 
+
+ #------------------------ MÉTODOS DE VALIDAÇÃO -------------------------------
 	@staticmethod
 	def _validar_partes_data(dia: int, mes: int, ano: int) -> None:
 		"""Valida se dia, mês e ano são inteiros e coerentes com o ano atual."""

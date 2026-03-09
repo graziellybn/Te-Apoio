@@ -1,9 +1,10 @@
-from dataclasses import dataclass
-from typing import Iterable
+from dataclasses import dataclass # Usada para criar value objects imutáveis
+from typing import Iterable # Usada para tipagem de coleções
 
 from teapoio.domain.models.item_rotina import ItemRotina
 
 
+#----------------------------- CLASSE EVOLUCAO -----------------------------
 @dataclass(frozen=True)
 class Evolucao:
 	"""[SOLID: SRP] Value object para indicadores de progresso da rotina."""
@@ -13,7 +14,7 @@ class Evolucao:
 	nao_realizados: int
 	pendentes: int
 
-
+#------------------------------ PROPRIEDADES ----------------------------------------
 	@property
 	def percentual_concluido(self) -> float:
 		"""Calcula o percentual de conclusão da rotina."""
@@ -22,6 +23,7 @@ class Evolucao:
 		return (self.concluidos / self.total_itens) * 100
 
 
+#------------------------------- MÉTODOS DE CRIAÇÃO ---------------------------------------
 	@classmethod
 	def a_partir_itens(cls, itens: Iterable[ItemRotina]) -> "Evolucao":
 		"""Cria uma instância de Evolucao a partir de uma coleção de itens de rotina."""
@@ -46,6 +48,7 @@ class Evolucao:
 		)
 
 
+#------------------------ MÉTODOS DE EXPORTAÇÃO -----------------------------
 	def to_dict(self) -> dict:
 		"""
         Converte o objeto Evolucao em um dicionário.
@@ -60,3 +63,4 @@ class Evolucao:
 			"pendentes": self.pendentes,
 			"percentual_concluido": self.percentual_concluido,
 		}
+

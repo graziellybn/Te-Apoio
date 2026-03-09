@@ -1,10 +1,8 @@
 from __future__ import annotations
-
-from typing import Iterable
-
+from typing import Iterable  # Usado para tipagem de coleções
 from teapoio.domain.models.pessoa import Pessoa
 
-
+ # ----------------------------- INICIALIZAÇÃO -----------------------------
 class PerfilSensorial(Pessoa):
 	"""[SOLID: LSP] Implementacao concreta substituivel de Pessoa."""
 
@@ -30,6 +28,7 @@ class PerfilSensorial(Pessoa):
 		self.estrategias_regulacao = self._normalizar_lista(estrategias_regulacao)
 
 
+#---------------------------- MÉTODOS DE VALIDAÇÃO -------------------------------------
 	@staticmethod
 	def _validar_id_crianca(id_crianca: str) -> str:
 		"""Valida o ID da criança, garantindo que seja uma string não vazia."""
@@ -55,6 +54,8 @@ class PerfilSensorial(Pessoa):
 				lista_normalizada.append(item)
 		return lista_normalizada
 
+
+#------------------------------ REGRAS DE NEGÓCIO ------------------------------------
 	def obter_status_idade(self) -> str:
 		"""Retorna uma string indicando se a criança é menor ou maior de idade."""
 		return "Maior de idade" if self.verificar_maioridade() else "Menor de idade"

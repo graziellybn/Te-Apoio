@@ -1,6 +1,7 @@
-import re
+import re # Usada para validação de horários com regex
 
 
+#----------------------------- CLASSE ITEM ROTINA -----------------------------
 class ItemRotina:
     """[SOLID: SRP] Entidade focada apenas em regras do item da rotina."""
 
@@ -11,9 +12,9 @@ class ItemRotina:
     PADRAO_HORARIO = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
 
+#------------------------ INICIALIZAÇÃO E VALIDAÇÃO -------------------------------
     def __init__(self, nome: str, horario: str):
         """Inicializa um item de rotina com nome, horário e status padrão."""
-
         self.nome = nome
         self.horario = horario
         self.status = self.STATUS_PENDENTE
@@ -21,6 +22,7 @@ class ItemRotina:
         self.tags = tags
 
 
+#------------------------ PROPRIEDADES COM VALIDAÇÃO -------------------------
     @property
     def nome(self) -> str:
         """Retorna o nome do item de rotina."""
@@ -75,10 +77,12 @@ class ItemRotina:
 
     @property
     def observacao(self) -> str:
+        """Retorna a observação do item."""
         return self.__observacao
 
     @observacao.setter
     def observacao(self, valor: str) -> None:
+        """Define e valida a observação do item, garantindo que seja uma string com no máximo 280 caracteres."""
         if valor is None:
             self.__observacao = ""
             return
@@ -93,10 +97,13 @@ class ItemRotina:
 
     @property
     def tags(self) -> list[str]:
+        """Retorna as tags do item."""
         return list(self.__tags)
 
     @tags.setter
     def tags(self, valor: list[str] | None) -> None:
+        """Define e valida as tags do item, garantindo que sejam uma lista de strings únicas, sem duplicatas, 
+        com no máximo 5 tags e cada tag com no máximo 20 caracteres."""
         if valor is None:
             self.__tags = []
             return
@@ -127,17 +134,22 @@ class ItemRotina:
 
         self.__tags = tags_limpa
 
+
+#------------------------ MÉTODOS DE ATUALIZAÇÃO -------------------------------
     def atualizar(self, novo_nome: str, novo_horario: str) -> None:
         """Atualiza nome e horário do item, validando ambos."""
         self.nome = novo_nome
         self.horario = novo_horario
 
     def atualizar_observacao(self, nova_observacao: str) -> None:
+        """Atualiza a observação do item."""
         self.observacao = nova_observacao
 
     def atualizar_tags(self, novas_tags: list[str] | None) -> None:
+        """Atualiza as tags do item, validando a nova lista de tags."""
         self.tags = novas_tags
 
+    #------------------------ REPRESENTAÇÕES -------------------------------
     def __str__(self):
         """Retorna representação amigável do item."""
         return f"[{self.horario}] {self.nome} (Status: {self.status})"

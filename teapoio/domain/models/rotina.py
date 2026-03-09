@@ -1,16 +1,16 @@
 from datetime import date, datetime
-from typing import Iterable, List, Protocol
+from typing import Iterable, List, Protocol # Tipagem e contratos de interface
 
-from teapoio.domain.models.evolucao import Evolucao
-from teapoio.domain.models.item_rotina import ItemRotina
+from teapoio.domain.models.evolucao import Evolucao # Classe de evolução da rotina
+from teapoio.domain.models.item_rotina import ItemRotina # Classe de item da rotina
 
 
+#----------------------------- PROTOCOLOS (CONTRATOS) -----------------------------
 class ResolvedorStatusRotina(Protocol):
     """[SOLID: ISP, DIP] Contrato minimo para resolver codigo de status."""
 
     def resolver(self, status_code: int | str) -> str:
         """Retorna um status valido de ItemRotina para o codigo informado."""
-
 
 class CalculadoraEvolucaoRotina(Protocol):
     """[SOLID: ISP, DIP] Contrato minimo para calcular evolucao da rotina."""
@@ -19,6 +19,7 @@ class CalculadoraEvolucaoRotina(Protocol):
         """Retorna uma Evolucao calculada para os itens informados."""
 
 
+#----------------------------- IMPLEMENTAÇÕES PADRÃO -----------------------------
 class ResolvedorStatusPadrao:
     """[SOLID: OCP, DIP] Implementacao padrao de resolucao de status."""
 
@@ -27,6 +28,7 @@ class ResolvedorStatusPadrao:
         2: ItemRotina.STATUS_NAO_REALIZADO,
         3: ItemRotina.STATUS_PENDENTE,
     }
+
 
     def resolver(self, status_code: int | str) -> str:
         """Retorna um status valido de ItemRotina para o codigo informado."""
@@ -52,12 +54,14 @@ class CalculadoraEvolucaoPadrao:
         return Evolucao.a_partir_itens(itens)
 
 
+
+#----------------------------- CLASSE ROTINA -----------------------------
 class Rotina:
     """[SOLID: SRP, OCP, DIP] Entidade de rotina com regras de dominio.
 
     A classe suporta registro de sentimentos e emocoes detalhadas em escala.
     """
-
+    # Definições de sentimentos do dia, mapeando código para emoji, label e escala.
     SENTIMENTOS_DIA = {
         "otimo": {"emoji": "🤩", "label": "Otimo", "escala": 5},
         "bem": {"emoji": "🙂", "label": "Bem", "escala": 4},
@@ -66,6 +70,7 @@ class Rotina:
         "cansativo": {"emoji": "😴", "label": "Cansativo", "escala": 1},
     }
 
+    # Mapeamento inverso de escala para sentimento, para facilitar normalizacao de entrada.
     SENTIMENTO_POR_ESCALA = {
         5: "otimo",
         4: "bem",
@@ -74,7 +79,7 @@ class Rotina:
         1: "cansativo",
     }
 
-    # lista de emoções que podem ser pontuadas de 1..5
+    # Lista de emoções que podem ser pontuadas de 1..5
     EMOCOES_DETALHADAS = [
         "feliz",
         "calmo",
@@ -87,6 +92,8 @@ class Rotina:
         "entediado",
     ]
 
+
+#------------------------ INICIALIZAÇÃO E VALIDAÇÃO -------------------------------
     def __init__(
         self,
         id_crianca,
@@ -95,6 +102,8 @@ class Rotina:
         resolvedor_status: ResolvedorStatusRotina | None = None,
         calculadora_evolucao: CalculadoraEvolucaoRotina | None = None,
     ):
+        """Inicializa a rotina de uma criança para um dia específico, com validação de dados e configuração de 
+        estratégias."""
         self.id_crianca = self._validar_id_crianca(id_crianca)
         self.data_referencia = self._validar_data_referencia(data_referencia)
         self.itens: List[ItemRotina] = []
@@ -104,8 +113,12 @@ class Rotina:
         self._resolvedor_status = resolvedor_status or ResolvedorStatusPadrao()
         self._calculadora_evolucao = calculadora_evolucao or CalculadoraEvolucaoPadrao()
 
+
+
+#---------------------- MÉTODOS DE APOIO À SENTIMENTOS ----------------------
     @classmethod
     def opcoes_sentimento_dia(cls) -> list[dict[str, str]]:
+        """Retorna a lista de opções de sentimento do dia, com código, emoji, label e escala para cada opção."""
         return [
             {
                 "codigo": codigo,
@@ -119,12 +132,15 @@ class Rotina:
 
     @classmethod
     def sentimento_por_escala(cls, escala: int) -> str:
+        """Retorna o código de sentimento correspondente à escala numérica, ou levanta erro se a escala for 
+        inválida."""
         if escala not in cls.SENTIMENTO_POR_ESCALA:
             raise ValueError("Escala de sentimento invalida. Use 1, 2, 3, 4 ou 5.")
         return cls.SENTIMENTO_POR_ESCALA[escala]
 
     @classmethod
     def normalizar_sentimento_entrada(cls, valor: str | None) -> str:
+        """Normaliza a entrada de sentimento do dia, aceitando código, label ou escala, e retornando o código."""
         if valor is None:
             return ""
         if not isinstance(valor, str):
@@ -148,6 +164,9 @@ class Rotina:
         """Retorna a lista de emoções que podem ser pontuadas."""
         return list(cls.EMOCOES_DETALHADAS)
 
+
+
+#------------------------ MÉTODOS DE VALIDAÇÃO -------------------------------
     @staticmethod
     def _validar_id_crianca(id_crianca) -> str:
         """Valida o ID da criança, garantindo que seja uma string numérica ou inteiro positivo."""
@@ -191,7 +210,10 @@ class Rotina:
 
         raise TypeError("data_referencia deve ser date, string valida ou None.")
 
+        
 
+
+#---------------------------- PROPRIEDADES -------------------------------------
     @property
     def data_formatada(self) -> str:
         """Retorna a data de referência formatada como string no formato DD/MM/YYYY."""
@@ -225,15 +247,9 @@ class Rotina:
             "completo": f"{dados['emoji']} {dados['label']}",
         }
 
-    @staticmethod
-    def _validar_indice(indice, total_itens: int) -> None:
-        """Valida se o indice é um inteiro dentro do intervalo de itens da rotina."""
-        if not isinstance(indice, int):
-            raise TypeError("Indice deve ser um numero inteiro.")
-        if not 0 <= indice < total_itens:
-            raise IndexError("Indice invalido.")
+   
 
-
+#------------------------------ GERENCIAMENTO DE ITENS DA ROTINA ---------------------------------
     def adicionar_item(self, item):
         """Adiciona um item à rotina, validando seu tipo e horário."""
         if not isinstance(item, ItemRotina):
@@ -267,6 +283,17 @@ class Rotina:
         self._validar_indice(indice, len(self.itens))
         self.itens[indice].status = self._resolvedor_status.resolver(status_code)
 
+    @staticmethod
+    def _validar_indice(indice, total_itens: int) -> None:
+        """Valida se o indice é um inteiro dentro do intervalo de itens da rotina."""
+        if not isinstance(indice, int):
+            raise TypeError("Indice deve ser um numero inteiro.")
+        if not 0 <= indice < total_itens:
+            raise IndexError("Indice invalido.")
+
+
+
+#-------------------------------- MÉTODOS DE EVOLUÇÃO -------------------------------------
     def calcular_evolucao(self):
         """Calcula a evolução da rotina."""
         return self.obter_evolucao().percentual_concluido
@@ -282,9 +309,9 @@ class Rotina:
     def atualizar_sentimento_dia(self, sentimento: str | None) -> None:
         self.sentimento_dia = sentimento
 
-    # ------------------------------------------------------------------
-    # metodos de registro de emocoes detalhadas
-    # ------------------------------------------------------------------
+
+
+# ------------------------------- MÉTODOS DE REGISTRO DE EMOÇÕES DETALHADAS ---------------------------------
     def registrar_emocao(self, emot: str, escala: int) -> None:
         """Armazena uma escala de 1..5 para uma das emoções detalhadas."""
         if not isinstance(emot, str):
