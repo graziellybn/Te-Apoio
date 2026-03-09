@@ -1,18 +1,19 @@
 from datetime import date
 import uuid
 from teapoio.domain.models.pessoa import Pessoa
-from teapoio.domain.models.responsavel import Responsavel
+from teapoio.domain.models.responsavel import Responsavel # Classe concreta de responsável.
 
+
+#-------------------------- INICIALIZAÇÃO + VALIDAÇÕES ----------------------------------
 class Crianca(Pessoa):
     """[SOLID: LSP] Implementacao concreta substituivel de Pessoa.
     Representa uma criança vinculada a um responsável, com validações
     específicas de idade e nível de suporte. Não permite instâncias
     que representem maiores de idade."""
 
+# Níveis de suporte permitidos (restrição de domínio).
     NIVEIS_SUPORTE_PERMITIDOS = {1, 2, 3}
     """Conjunto de níveis de suporte permitidos (restrição de domínio)."""
-
-
 
     def __init__(self, nome: str, data_nascimento: date, responsavel: Responsavel | str,
                  nivel_suporte: int, id_crianca: str | None = None, uuid_func=None) -> None:
@@ -35,6 +36,7 @@ class Crianca(Pessoa):
         self.nivel_suporte = nivel_suporte
 
 
+# ----------------------------- MÉTODOS UTILITÁRIOS ----------------------------
     @staticmethod
     def _gerar_id_uuid(uuid_func=None) -> str:
         '''Gera um ID numérico de 6 dígitos a partir de UUID.'''
@@ -45,7 +47,7 @@ class Crianca(Pessoa):
         digitos = digitos.ljust(6, '0')
         return digitos
 
-
+# ----------------------------- PROPRIEDADES ----------------------------
     @property
     def nivel_suporte(self) -> int:
         """Retorna o nível de suporte da criança."""
@@ -62,7 +64,7 @@ class Crianca(Pessoa):
         self.__nivel_suporte = valor
 
 
-
+# ----------------------------- MÉTODOS DE VERIFICAÇÃO ----------------------------
     def idade_em(self, hoje: date | None = None) -> int:
         """Calcula a idade da criança na data informada (ou hoje, se não for informada)."""
         hoje = hoje or date.today()
@@ -71,7 +73,7 @@ class Crianca(Pessoa):
         return anos if fez_aniversario else anos - 1
 
 
-
+#----------------------------- REGRAS DE NEGÓCIO ----------------------------
     def obter_status_idade(self) -> str:
         """Retorna uma string indicando se a criança é menor ou maior de idade."""
         try:

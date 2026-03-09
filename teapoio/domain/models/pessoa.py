@@ -1,7 +1,9 @@
-from datetime import datetime
-from abc import ABC, abstractmethod
-import re
+from datetime import datetime # Importação do módulo datetime para manipulação de datas.
+from abc import ABC, abstractmethod # Usada para criar classes abstratas e métodos obrigatórios
+import re # Importação do módulo de expressões regulares para validação de strings.
 
+
+# ----------------------------- INICIALIZAÇÃO + VALIDAÇÃO BÁSICA -----------------------------
 class Pessoa(ABC):
     """[SOLID: LSP, ISP] Classe base abstrata para tipos de pessoa."""
     
@@ -12,20 +14,24 @@ class Pessoa(ABC):
         self.email = self._validar_email(email) if email else None
     
 
+# ------------------------ MÉTODOS DE VALIDAÇÃO -------------------------------
     @staticmethod
     def _validar_nome(nome: str) -> str:
         """Valida o nome da pessoa, garantindo que seja uma string não vazia."""
         if not isinstance(nome, str):
             raise ValueError("Nome deve ser uma string.")
         
+        # Validação de caracteres permitidos (letras, acentos, espaços, hífens e apóstrofos).
         nome_limpo = nome.strip()
         if not nome_limpo:
             raise ValueError("Nome não pode ser vazio.")
         
+        # Validação de formato (pelo menos nome e sobrenome).
         padrao_nome = r"^[a-zA-ZáàâãéèêíïóôõöúçñÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s'-]+$"
         if not re.match(padrao_nome, nome_limpo):
             raise ValueError("Nome inválido.")
         
+        # Validação de pelo menos nome e sobrenome (mínimo 2 palavras).
         if len(nome_limpo.split()) < 2:
             raise ValueError("Nome deve conter pelo menos nome e sobrenome.")
         
@@ -39,6 +45,7 @@ class Pessoa(ABC):
         if not isinstance(data, str):
             raise ValueError("Data deve ser uma string.")
         
+        # Validação de formato usando regex (DD/MM/YYYY).
         padrao_data = r"^(\d{2})/(\d{2})/(\d{4})$"
         if not re.match(padrao_data, data):
             raise ValueError("Data deve estar no formato DD/MM/YYYY.")
@@ -67,6 +74,7 @@ class Pessoa(ABC):
         if not isinstance(email, str):
             raise ValueError("Email deve ser uma string.")
         
+        # Validação de formato usando regex.
         email_limpo = email.strip().lower()
         if not email_limpo:
             raise ValueError("Email não pode ser vazio.")
@@ -76,6 +84,8 @@ class Pessoa(ABC):
         
         return email_limpo
     
+
+# ------------------------ MÉTODOS DE VERIFICAÇÃO -------------------------------
 
     def calcular_idade(self) -> int:
         """Calcula a idade da pessoa com base na data de nascimento."""
@@ -89,6 +99,7 @@ class Pessoa(ABC):
         """Verifica se a pessoa é maior de idade (18 anos ou mais)."""
         return self.calcular_idade() >= 18
     
+# ----------------------------- MÉTODOS ABSTRATOS -----------------------------
     @abstractmethod
     def obter_status_idade(self) -> str:
         """Retorna uma string indicando o status de idade da pessoa (ex: 'Menor de idade', 'Maior de idade')."""

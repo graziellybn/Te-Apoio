@@ -1,17 +1,20 @@
-from datetime import date
-from teapoio.domain.models.pessoa import Pessoa
-import uuid
+from datetime import date # Importação de date para manipulação de datas.
+from teapoio.domain.models.pessoa import Pessoa # Importação da classe base Pessoa para herança.
+import uuid # Importação do módulo uuid para geração de identificadores únicos.
 
+
+#-------------------------- INICIALIZAÇÃO + VALIDAÇÕES BÁSICAS ----------------------------------
 class Responsavel(Pessoa):
     """[SOLID: LSP] Implementacao concreta substituivel de Pessoa."""
-
 
     def __init__(self, nome, data_nascimento, email, id_responsavel=None, uuid_func=None):
         """Inicializa uma instância de responsável, validando seus dados."""
    
+        #Validação de senha
         super().__init__(nome, data_nascimento, email)
         self.senha = self._validar_senha(senha)
 
+        #Atribuição/geração do ID do responsável
         if id_responsavel:
             self.id_responsavel = str(id_responsavel)
         else:
@@ -22,8 +25,10 @@ class Responsavel(Pessoa):
             raise ValueError("Responsável deve ter pelo menos 18 anos.")
 
 
+#----------------------------- MÉTODOS AUXILIARES DE VALIDAÇÃO ----------------------------
     @staticmethod
     def _validar_senha(senha: str) -> str:
+        """Valida a senha do responsável, garantindo que seja uma string com pelo menos 6 caracteres."""
         if not isinstance(senha, str):
             raise ValueError("Senha deve ser uma string.")
 
@@ -33,7 +38,10 @@ class Responsavel(Pessoa):
 
         return senha_limpa
 
+
+#----------------------------- MÉTODOS UTILITÁRIOS ----------------------------
     def confere_senha(self, senha_informada: str) -> bool:
+        """"Verifica se a senha informada corresponde à senha do responsável."""
         if not isinstance(senha_informada, str):
             return False
         return self.senha == senha_informada.strip()
@@ -48,7 +56,7 @@ class Responsavel(Pessoa):
         digitos = digitos.ljust(6, '0')
         return digitos
 
-
+#----------------------------- REGRAS DE NEGÓCIO ----------------------------
     def obter_status_idade(self) -> str:
         """Retorna uma string indicando se o responsável é menor ou maior de idade."""
         try:
