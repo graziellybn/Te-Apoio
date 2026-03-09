@@ -317,12 +317,18 @@ class SerializadorEstadoRelatorio:
             return None
 
     def _serializar_rotina(self, rotina: Rotina) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
             "id_crianca": rotina.id_crianca,
             "data_referencia": rotina.data_referencia.isoformat(),
             "sentimento_dia": rotina.sentimento_dia,
             "itens": [self._serializar_item_rotina(item) for item in rotina.itens],
         }
+        emocoes = rotina.obter_emocoes()
+        if emocoes:
+            payload["emocoes"] = emocoes
+        if rotina.atividades:
+            payload["atividades"] = [a.to_dict() for a in rotina.atividades]
+        return payload
 
     @staticmethod
     def _serializar_item_rotina(item: ItemRotina) -> dict[str, Any]:
@@ -348,6 +354,28 @@ class SerializadorEstadoRelatorio:
             )
         except (TypeError, ValueError):
             return None
+
+        # carga das emoções e atividades (compatibilidade com dados antigos)
+        emocoes_brutas = bruto.get("emocoes")
+        if isinstance(emocoes_brutos, dict):
+            for emo, escala in emocoes_brutos.items():
+                try:
+                    rotina.registrar_emocao(emo, int(escala))
+                except (TypeError, ValueError):
+                    continue
+
+        atividades_brutas = bruto.get("atividades", [])
+        if isinstance(atividades_brutas, list):
+            for bruto_ativ in atividades_brutas:
+                if not isinstance(bruto_ativ, dict):
+                    continue
+                try:
+                    rotina.registrar_atividade(
+                        bruto_ativ.get("nome", ""),
+                        bruto_ativ.get("tipo", ""),
+                    )
+                except (TypeError, ValueError):
+                    continue
 
         itens_brutos = bruto.get("itens", [])
         if not isinstance(itens_brutos, list):
