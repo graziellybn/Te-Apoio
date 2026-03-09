@@ -30,6 +30,45 @@ As camadas de domínio não dependem das camadas superiores.
 
 ---
 
+## 🚀 Backend Flask (API)
+
+O projeto agora pode ser executado como backend HTTP com Flask, reutilizando as regras de dominio e os servicos da CLI.
+
+### Executar
+
+```bash
+pip install -r requirements.txt
+python -m teapoio.infrastructure.main
+```
+
+A API sera iniciada por padrao em `http://127.0.0.1:5000`.
+
+### Variaveis de ambiente opcionais
+
+- `TEAPOIO_HOST` (padrao: `127.0.0.1`)
+- `TEAPOIO_PORT` (padrao: `5000`)
+- `TEAPOIO_DEBUG` (`1` ou `0`, padrao: `1`)
+
+### Rotas principais
+
+- `GET /health`
+- `GET /responsaveis`
+- `POST /responsaveis`
+- `GET /responsaveis/<id_responsavel>`
+- `GET /responsaveis/<id_responsavel>/criancas`
+- `POST /responsaveis/<id_responsavel>/criancas`
+- `PATCH /criancas/<id_crianca>`
+- `DELETE /criancas/<id_crianca>`
+- `PUT /criancas/<id_crianca>/perfil-sensorial`
+- `GET /criancas/<id_crianca>/perfil-sensorial`
+- `GET /rotinas/<id_crianca>?data=AAAA-MM-DD`
+- `POST /rotinas/<id_crianca>/itens`
+- `PATCH /rotinas/<id_crianca>/itens/<indice>/status`
+- `DELETE /rotinas/<id_crianca>/itens/<indice>?data=AAAA-MM-DD`
+- `GET /sugestoes-rotina`
+
+---
+
 ## 📋 Requisitos Funcionais (RF)
 
 - RF01 — Cadastro do responsável

@@ -8,7 +8,13 @@ from teapoio.domain.models.rotina import Rotina
 class FabricaItemRotina(Protocol):
 	"""[SOLID: ISP, DIP] Contrato minimo para criacao de itens de rotina."""
 
-	def criar(self, nome: str, horario: str) -> ItemRotina:
+	def criar(
+		self,
+		nome: str,
+		horario: str,
+		observacao: str = "",
+		tags: list[str] | None = None,
+	) -> ItemRotina:
 		"""Cria um ItemRotina a partir dos dados de entrada."""
 
 
@@ -24,8 +30,14 @@ class FabricaRotina(Protocol):
 class FabricaItemRotinaPadrao:
 	"""[SOLID: OCP, DIP] Implementacao padrao para criar ItemRotina."""
 
-	def criar(self, nome: str, horario: str) -> ItemRotina:
-		return ItemRotina(nome=nome, horario=horario)
+	def criar(
+		self,
+		nome: str,
+		horario: str,
+		observacao: str = "",
+		tags: list[str] | None = None,
+	) -> ItemRotina:
+		return ItemRotina(nome=nome, horario=horario, observacao=observacao, tags=tags)
 
 
 
@@ -77,10 +89,10 @@ class ServicoRotinas:
 		rotinas.append(rotina)
 		return rotina, True
 
-
 	def adicionar_item(self, rotina: Rotina, nome_item: str, horario: str) -> ItemRotina:
 		""""Adiciona um novo item à rotina usando a fábrica de itens."""
 		item = self._fabrica_item.criar(nome=nome_item, horario=horario)
+
 		rotina.adicionar_item(item)
 		return item
 

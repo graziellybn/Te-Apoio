@@ -10,11 +10,15 @@ class ItemRotina:
     STATUS_PERMITIDOS = {STATUS_PENDENTE, STATUS_CONCLUIDO, STATUS_NAO_REALIZADO}
     PADRAO_HORARIO = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
+
     def __init__(self, nome: str, horario: str):
         """Inicializa um item de rotina com nome, horário e status padrão."""
+
         self.nome = nome
         self.horario = horario
         self.status = self.STATUS_PENDENTE
+        self.observacao = observacao
+        self.tags = tags
 
 
     @property
@@ -69,10 +73,70 @@ class ItemRotina:
 
         self.__status = valor
 
+    @property
+    def observacao(self) -> str:
+        return self.__observacao
+
+    @observacao.setter
+    def observacao(self, valor: str) -> None:
+        if valor is None:
+            self.__observacao = ""
+            return
+        if not isinstance(valor, str):
+            raise TypeError("Observacao deve ser uma string.")
+
+        observacao_limpa = valor.strip()
+        if len(observacao_limpa) > 280:
+            raise ValueError("Observacao deve ter no maximo 280 caracteres.")
+
+        self.__observacao = observacao_limpa
+
+    @property
+    def tags(self) -> list[str]:
+        return list(self.__tags)
+
+    @tags.setter
+    def tags(self, valor: list[str] | None) -> None:
+        if valor is None:
+            self.__tags = []
+            return
+        if not isinstance(valor, list):
+            raise TypeError("Tags devem ser uma lista de strings.")
+
+        tags_limpa: list[str] = []
+        vistos: set[str] = set()
+        for item in valor:
+            if not isinstance(item, str):
+                raise TypeError("Cada tag deve ser uma string.")
+            tag = item.strip().lstrip("#")
+            if not tag:
+                continue
+            if len(tag) > self.LIMITE_TAG:
+                raise ValueError(
+                    f"Cada tag deve ter no maximo {self.LIMITE_TAG} caracteres."
+                )
+
+            chave = tag.casefold()
+            if chave in vistos:
+                continue
+            vistos.add(chave)
+            tags_limpa.append(tag)
+
+        if len(tags_limpa) > self.LIMITE_TAGS:
+            raise ValueError(f"Use no maximo {self.LIMITE_TAGS} tags por tarefa.")
+
+        self.__tags = tags_limpa
+
     def atualizar(self, novo_nome: str, novo_horario: str) -> None:
         """Atualiza nome e horário do item, validando ambos."""
         self.nome = novo_nome
         self.horario = novo_horario
+
+    def atualizar_observacao(self, nova_observacao: str) -> None:
+        self.observacao = nova_observacao
+
+    def atualizar_tags(self, novas_tags: list[str] | None) -> None:
+        self.tags = novas_tags
 
     def __str__(self):
         """Retorna representação amigável do item."""

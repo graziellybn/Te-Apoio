@@ -65,7 +65,8 @@ def test_responsavel_maior_de_idade():
     r = Responsavel(
         nome="Maria Silva",
         data_nascimento="01/01/1980",  
-        email="maria@example.com"
+        email="maria@example.com",
+        senha="maria123"
     )
     assert r.verificar_maioridade() is True
     assert len(r.id_responsavel) == 6
@@ -78,7 +79,8 @@ def test_responsavel_menor_de_idade():
         Responsavel(
             nome="Pedro Júnior",
             data_nascimento="01/01/2010",  
-            email="pedro@example.com"
+            email="pedro@example.com",
+            senha="pedro123"
         )
 
 
@@ -87,7 +89,8 @@ def test_crianca_vinculada_responsavel():
     r = Responsavel(
         nome="Carlos Souza",
         data_nascimento="20/05/1985",  
-        email="carlos@example.com"
+        email="carlos@example.com",
+        senha="carlos123"
     )
     c = Crianca(
         nome="Ana Souza",
@@ -106,7 +109,8 @@ def test_crianca_maior_de_idade():
     r = Responsavel(
         nome="João Silva",
         data_nascimento="15/03/1980",  
-        email="joao@example.com"
+        email="joao@example.com",
+        senha="joao123"
     )
     with pytest.raises(ValueError):
         Crianca(
@@ -135,7 +139,8 @@ def test_perfil_adiciona_e_busca_perfil_sensorial_da_crianca():
     r = Responsavel(
         nome="Carlos Souza",
         data_nascimento="20/05/1985",
-        email="carlos@example.com"
+        email="carlos@example.com",
+        senha="carlos123"
     )
     c = Crianca(
         nome="Ana Souza",

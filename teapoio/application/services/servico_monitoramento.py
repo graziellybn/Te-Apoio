@@ -21,6 +21,13 @@ class ServicoMonitoramento:
 		for i, item in enumerate(rotina.itens):
 			linhas.append(f"{i + 1}. {item}")
 
+		# incluir emoções registradas, se houver
+		emocoes = rotina.obter_emocoes()
+		if emocoes:
+			linhas.append("\n[EMOCOES DETALHADAS]")
+			for emo, escala in emocoes.items():
+				linhas.append(f" - {emo}: {escala}")
+
 		resumo = self.obter_resumo_rotina(rotina)
 		linhas.append(
 			f"\n[EVOLUCAO DO DIA]: {resumo['percentual_concluido']:.1f}% concluido "

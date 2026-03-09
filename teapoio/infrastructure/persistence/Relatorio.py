@@ -123,6 +123,7 @@ class SerializadorEstadoRelatorio:
             "nome": responsavel.nome,
             "data_nascimento": responsavel.data_nascimento.strftime("%d/%m/%Y"),
             "email": responsavel.email,
+            "senha": responsavel.senha,
             "criancas": [
                 self._serializar_crianca(item)
                 for item in criancas_responsavel
@@ -184,13 +185,19 @@ class SerializadorEstadoRelatorio:
             return None
 
         try:
+            id_responsavel = bruto.get("id_responsavel")
+            senha = bruto.get("senha")
+            if not isinstance(senha, str) or not senha.strip():
+                senha = f"legado-{str(id_responsavel or '').strip() or '000000'}"
+
             return Responsavel(
                 nome=bruto.get("nome"),
                 data_nascimento=self._normalizar_data_nascimento(
                     bruto.get("data_nascimento")
                 ),
                 email=bruto.get("email"),
-                id_responsavel=bruto.get("id_responsavel"),
+                senha=senha,
+                id_responsavel=id_responsavel,
             )
         except (TypeError, ValueError):
             return None
@@ -310,11 +317,16 @@ class SerializadorEstadoRelatorio:
             return None
 
     def _serializar_rotina(self, rotina: Rotina) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
             "id_crianca": rotina.id_crianca,
             "data_referencia": rotina.data_referencia.isoformat(),
+            "sentimento_dia": rotina.sentimento_dia,
             "itens": [self._serializar_item_rotina(item) for item in rotina.itens],
         }
+        emocoes = rotina.obter_emocoes()
+        if emocoes:
+            payload["emocoes"] = emocoes
+        return payload
 
     @staticmethod
     def _serializar_item_rotina(item: ItemRotina) -> dict[str, Any]:
@@ -322,6 +334,8 @@ class SerializadorEstadoRelatorio:
             "nome": item.nome,
             "horario": item.horario,
             "status": item.status,
+            "observacao": item.observacao,
+            "tags": item.tags,
         }
 
     def _desserializar_rotina(self, bruto: Any) -> Rotina | None:
@@ -334,9 +348,19 @@ class SerializadorEstadoRelatorio:
                 data_referencia=self._desserializar_data_referencia(
                     bruto.get("data_referencia")
                 ),
+                sentimento_dia=bruto.get("sentimento_dia"),
             )
         except (TypeError, ValueError):
             return None
+
+        # carga das emoções detalhadas (compatibilidade com dados antigos)
+        emocoes_brutas = bruto.get("emocoes")
+        if isinstance(emocoes_brutas, dict):
+            for emo, escala in emocoes_brutas.items():
+                try:
+                    rotina.registrar_emocao(emo, int(escala))
+                except (TypeError, ValueError):
+                    continue
 
         itens_brutos = bruto.get("itens", [])
         if not isinstance(itens_brutos, list):
@@ -359,9 +383,21 @@ class SerializadorEstadoRelatorio:
             return None
 
         try:
+            observacao = bruto.get("observacao")
+            tags_brutas = bruto.get("tags", [])
+            tags: list[str]
+            if isinstance(tags_brutas, list):
+                tags = [item for item in tags_brutas if isinstance(item, str)]
+            elif isinstance(tags_brutas, str):
+                tags = [item.strip() for item in tags_brutas.split(",") if item.strip()]
+            else:
+                tags = []
+
             item = ItemRotina(
                 nome=bruto.get("nome"),
                 horario=bruto.get("horario"),
+                observacao=observacao if isinstance(observacao, str) else "",
+                tags=tags,
             )
             status = bruto.get("status")
             if isinstance(status, str):

@@ -186,6 +186,7 @@ def test_rotina_aceita_resolvedor_status_customizado():
 	assert rotina.itens[0].status == ItemRotina.STATUS_CONCLUIDO
 
 
+
 def test_rotina_aceita_calculadora_evolucao_customizada():
 	"""Valida se a rotina aceita uma calculadora de evolução customizada para sobrescrever os resultados do cálculo de evolução e se o resultado é retornado corretamente com base na lógica da calculadora"""
 	class CalculadoraFixa:

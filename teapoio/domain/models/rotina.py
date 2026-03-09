@@ -53,20 +53,100 @@ class CalculadoraEvolucaoPadrao:
 
 
 class Rotina:
-    """[SOLID: SRP, OCP, DIP] Entidade de rotina com regras de dominio."""
+    """[SOLID: SRP, OCP, DIP] Entidade de rotina com regras de dominio.
+
+    A classe suporta registro de sentimentos e emocoes detalhadas em escala.
+    """
+
+    SENTIMENTOS_DIA = {
+        "otimo": {"emoji": "🤩", "label": "Otimo", "escala": 5},
+        "bem": {"emoji": "🙂", "label": "Bem", "escala": 4},
+        "neutro": {"emoji": "😐", "label": "Neutro", "escala": 3},
+        "dificil": {"emoji": "😟", "label": "Dificil", "escala": 2},
+        "cansativo": {"emoji": "😴", "label": "Cansativo", "escala": 1},
+    }
+
+    SENTIMENTO_POR_ESCALA = {
+        5: "otimo",
+        4: "bem",
+        3: "neutro",
+        2: "dificil",
+        1: "cansativo",
+    }
+
+    # lista de emoções que podem ser pontuadas de 1..5
+    EMOCOES_DETALHADAS = [
+        "feliz",
+        "calmo",
+        "ansioso",
+        "irritado",
+        "frustrado",
+        "triste",
+        "sobrecarregado",
+        "confuso",
+        "entediado",
+    ]
 
     def __init__(
         self,
         id_crianca,
         data_referencia=None,
+        sentimento_dia: str | None = None,
         resolvedor_status: ResolvedorStatusRotina | None = None,
         calculadora_evolucao: CalculadoraEvolucaoRotina | None = None,
     ):
         self.id_crianca = self._validar_id_crianca(id_crianca)
         self.data_referencia = self._validar_data_referencia(data_referencia)
         self.itens: List[ItemRotina] = []
+        self.sentimento_dia = sentimento_dia
+        # estrutura para emoções detalhadas: cada emoção mapeia para escala 1..5
+        self._emocao_escalas: dict[str, int] = {}
         self._resolvedor_status = resolvedor_status or ResolvedorStatusPadrao()
         self._calculadora_evolucao = calculadora_evolucao or CalculadoraEvolucaoPadrao()
+
+    @classmethod
+    def opcoes_sentimento_dia(cls) -> list[dict[str, str]]:
+        return [
+            {
+                "codigo": codigo,
+                "emoji": dados["emoji"],
+                "label": dados["label"],
+                "escala": str(dados["escala"]),
+                "completo": f"{dados['emoji']} {dados['label']}",
+            }
+            for codigo, dados in cls.SENTIMENTOS_DIA.items()
+        ]
+
+    @classmethod
+    def sentimento_por_escala(cls, escala: int) -> str:
+        if escala not in cls.SENTIMENTO_POR_ESCALA:
+            raise ValueError("Escala de sentimento invalida. Use 1, 2, 3, 4 ou 5.")
+        return cls.SENTIMENTO_POR_ESCALA[escala]
+
+    @classmethod
+    def normalizar_sentimento_entrada(cls, valor: str | None) -> str:
+        if valor is None:
+            return ""
+        if not isinstance(valor, str):
+            raise TypeError("Sentimento do dia deve ser uma string.")
+
+        sentimento = valor.strip().lower()
+        if not sentimento:
+            return ""
+
+        if sentimento.isdigit():
+            return cls.sentimento_por_escala(int(sentimento))
+
+        if sentimento not in cls.SENTIMENTOS_DIA:
+            permitidos = ", ".join(sorted(cls.SENTIMENTOS_DIA))
+            raise ValueError(f"Sentimento invalido. Permitidos: {permitidos} ou escala 1..5.")
+
+        return sentimento
+
+    @classmethod
+    def opcoes_emocoes_detalhadas(cls) -> list[str]:
+        """Retorna a lista de emoções que podem ser pontuadas."""
+        return list(cls.EMOCOES_DETALHADAS)
 
     @staticmethod
     def _validar_id_crianca(id_crianca) -> str:
@@ -116,6 +196,34 @@ class Rotina:
     def data_formatada(self) -> str:
         """Retorna a data de referência formatada como string no formato DD/MM/YYYY."""
         return self.data_referencia.strftime("%d/%m/%Y")
+
+    @property
+    def sentimento_dia(self) -> str:
+        return self.__sentimento_dia
+
+    @sentimento_dia.setter
+    def sentimento_dia(self, valor: str | None) -> None:
+        self.__sentimento_dia = self.normalizar_sentimento_entrada(valor)
+
+    @property
+    def sentimento_dia_info(self) -> dict[str, str]:
+        if not self.sentimento_dia:
+            return {
+                "codigo": "",
+                "emoji": "",
+                "label": "Nao informado",
+                "escala": "",
+                "completo": "Nao informado",
+            }
+
+        dados = self.SENTIMENTOS_DIA[self.sentimento_dia]
+        return {
+            "codigo": self.sentimento_dia,
+            "emoji": dados["emoji"],
+            "label": dados["label"],
+            "escala": str(dados["escala"]),
+            "completo": f"{dados['emoji']} {dados['label']}",
+        }
 
     @staticmethod
     def _validar_indice(indice, total_itens: int) -> None:
@@ -170,6 +278,28 @@ class Rotina:
     def obter_resumo_evolucao(self):
         """Obtém um resumo da evolução da rotina."""
         return self.obter_evolucao().to_dict()
+
+    def atualizar_sentimento_dia(self, sentimento: str | None) -> None:
+        self.sentimento_dia = sentimento
+
+    # ------------------------------------------------------------------
+    # metodos de registro de emocoes detalhadas
+    # ------------------------------------------------------------------
+    def registrar_emocao(self, emot: str, escala: int) -> None:
+        """Armazena uma escala de 1..5 para uma das emoções detalhadas."""
+        if not isinstance(emot, str):
+            raise TypeError("Emoção deve ser uma string.")
+        chave = emot.strip().lower()
+        if chave not in self.EMOCOES_DETALHADAS:
+            permitidas = ", ".join(sorted(self.EMOCOES_DETALHADAS))
+            raise ValueError(f"Emoção inválida. Permitidas: {permitidas}.")
+        if not isinstance(escala, int) or escala < 1 or escala > 5:
+            raise ValueError("Escala de emoção deve ser inteiro entre 1 e 5.")
+        self._emocao_escalas[chave] = escala
+
+    def obter_emocoes(self) -> dict[str, int]:
+        """Retorna cópia das emoções registradas e suas escalas."""
+        return dict(self._emocao_escalas)
 
 def obter_sugestoes_tea():
     """Retorna uma lista de sugestões de itens de rotina comuns."""
