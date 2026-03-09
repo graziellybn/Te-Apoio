@@ -193,6 +193,57 @@ h1 {
   margin-bottom: 0.8rem;
 }
 
+.tag-selector {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.34rem;
+}
+
+.tag-selector-preset {
+  max-width: 100%;
+}
+
+.tag-selector-compact {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, max-content));
+  justify-content: end;
+  gap: 0.28rem;
+}
+
+.tag-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid rgba(31, 42, 44, 0.18);
+  border-radius: 999px;
+  padding: 0.14rem 0.46rem;
+  background: linear-gradient(135deg, #fffdf8, #f7f1e8);
+  font-size: 0.77rem;
+  line-height: 1;
+}
+
+.tag-option input {
+  margin: 0;
+  width: 13px;
+  height: 13px;
+}
+
+.tag-option span {
+  white-space: nowrap;
+}
+
+.field-group {
+  display: grid;
+  gap: 0.34rem;
+}
+
+.field-label {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
 .tab-row .btn {
   width: 100%;
 }
@@ -657,10 +708,6 @@ textarea:focus {
   min-width: 210px;
 }
 
-.note-form input[name="tags"] {
-  min-width: 180px;
-}
-
 .btn-status {
   padding: 0.34rem 0.55rem;
   font-size: 0.78rem;
@@ -730,8 +777,18 @@ textarea:focus {
 .progress span {
   display: block;
   height: 100%;
+  width: 0;
   border-radius: inherit;
   background: linear-gradient(135deg, var(--accent), #0e9187);
+}
+
+.chart-block {
+  margin-top: 0.9rem;
+}
+
+.chart-wrap {
+  position: relative;
+  min-height: 260px;
 }
 
 .json {
@@ -786,9 +843,8 @@ textarea:focus {
     width: 100%;
   }
 
-  .note-form input[name="tags"] {
-    min-width: 0;
-    width: 100%;
+  .note-form .tag-selector-compact {
+    justify-content: start;
   }
 
   .tab-row {

@@ -199,7 +199,7 @@ def test_rotina_aceita_resolvedor_status_customizado():
 	assert rotina.itens[0].status == ItemRotina.STATUS_CONCLUIDO
 
 # -------------------------------------------------------------------------
-# novos casos: registro de emoções e atividades
+# novos casos: registro de emoções
 # -------------------------------------------------------------------------
 
 def test_rotina_registra_emocao_valida():
@@ -220,21 +220,6 @@ def test_rotina_rejeita_emocao_invalida_ou_escala():
 	with pytest.raises(TypeError):
 		rotina.registrar_emocao(123, 3)
 
-
-def test_rotina_adiciona_atividade_e_lista():
-	rotina = Rotina("123")
-	rotina.registrar_atividade("estudo de matematica", "cognitivo")
-	rotina.registrar_atividade("jogar bola", "lazer")
-	atividades = rotina.listar_atividades()
-	assert len(atividades) == 2
-	assert atividades[0].nome == "estudo de matematica"
-	assert atividades[1].tipo == "lazer"
-
-
-def test_rotina_rejeita_atividade_com_tipo_invalido():
-	rotina = Rotina("123")
-	with pytest.raises(ValueError):
-		rotina.registrar_atividade("qualquer coisa", "profissional")
 
 # Verifica se Rotina aceita calculadora de evolução customizada para sobrescrever resultados.
 def test_rotina_aceita_calculadora_evolucao_customizada():

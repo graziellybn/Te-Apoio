@@ -54,3 +54,9 @@ class Crianca(Pessoa):
         anos = hoje.year - self.data_nascimento.year
         fez_aniversario = (hoje.month, hoje.day) >= (self.data_nascimento.month, self.data_nascimento.day)
         return anos if fez_aniversario else anos - 1
+
+    def obter_status_idade(self) -> str:
+        try:
+            return "Menor de idade" if not self.verificar_maioridade() else "Maior de idade"
+        except Exception:
+            return "Idade desconhecida"

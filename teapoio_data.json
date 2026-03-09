@@ -6,8 +6,15 @@
       "data_nascimento": "22/12/2006",
       "email": "pedrokauancardosoda@gmail.com",
       "senha": "POO123",
-      "criancas": [],
-      "aviso_crianca": "crianca nao cadastrada"
+      "criancas": [
+        {
+          "id_crianca": "605616",
+          "id_responsavel": "244094",
+          "nome": "Maria da silva",
+          "data_nascimento": "22/12/2009",
+          "nivel_suporte": 2
+        }
+      ]
     },
     {
       "id_responsavel": "416471",
@@ -58,6 +65,22 @@
       "senha": "POO321",
       "criancas": [],
       "aviso_crianca": "crianca nao cadastrada"
+    },
+    {
+      "id_responsavel": "387994",
+      "nome": "Pedro Kauan Cardoso Da Silva",
+      "data_nascimento": "22/12/2006",
+      "email": "kauan123@gmail.com",
+      "senha": "POO!@#",
+      "criancas": [
+        {
+          "id_crianca": "456133",
+          "id_responsavel": "387994",
+          "nome": "Luan do nascimento",
+          "data_nascimento": "22/12/2010",
+          "nivel_suporte": 2
+        }
+      ]
     }
   ],
   "rotinas": [
@@ -120,11 +143,65 @@
       "data_referencia": "2026-03-05",
       "sentimento_dia": "",
       "itens": []
+    },
+    {
+      "id_crianca": "605616",
+      "data_referencia": "2026-03-08",
+      "sentimento_dia": "",
+      "itens": [
+        {
+          "nome": "Lanche",
+          "horario": "08:00",
+          "status": "Concluído",
+          "observacao": "Não comeu verduras",
+          "tags": [
+            "alimentacao"
+          ]
+        },
+        {
+          "nome": "Janta",
+          "horario": "19:00",
+          "status": "Concluído",
+          "observacao": "Comeu tudo",
+          "tags": [
+            "alimentacao"
+          ]
+        }
+      ]
+    },
+    {
+      "id_crianca": "605616",
+      "data_referencia": "2026-03-07",
+      "sentimento_dia": "cansativo",
+      "itens": []
+    },
+    {
+      "id_crianca": "456133",
+      "data_referencia": "2026-03-08",
+      "sentimento_dia": "bem",
+      "itens": []
+    },
+    {
+      "id_crianca": "605616",
+      "data_referencia": "2026-03-06",
+      "sentimento_dia": "dificil",
+      "itens": []
     }
   ],
   "perfil": {
-    "id_responsavel": "869356",
-    "perfis_sensoriais": []
+    "id_responsavel": "244094",
+    "perfis_sensoriais": [
+      {
+        "id_crianca": "605616",
+        "nome": "Maria da silva",
+        "data_nascimento": "22/12/2009",
+        "hipersensibilidades": [],
+        "hipossensibilidades": [],
+        "hiperfocos": [],
+        "seletividade_alimentar": [],
+        "estrategias_regulacao": []
+      }
+    ]
   },
-  "data_calendario": "2026-03-07"
+  "data_calendario": "2026-03-08"
 }

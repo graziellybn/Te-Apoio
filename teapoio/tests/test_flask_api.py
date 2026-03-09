@@ -1074,12 +1074,34 @@ def test_web_exporta_relatorio_pdf(tmp_path):
     pagina = client.get("/?secao=criancas")
     id_crianca = _extrair_primeiro_id_crianca_html(pagina.get_data(as_text=True))
 
-    base = date.today().isoformat()
+    hoje = date.today()
+    base = hoje.replace(day=1).isoformat()
+    dia_2 = hoje.replace(day=2).isoformat()
+    dia_3 = hoje.replace(day=3).isoformat()
+
+    client.post(
+        "/web/rotina/sentimento",
+        data={"data": base, "sentimento": "bem"},
+        follow_redirects=False,
+    )
+    client.post(
+        "/web/rotina/sentimento",
+        data={"data": dia_2, "sentimento": "bem"},
+        follow_redirects=False,
+    )
+    client.post(
+        "/web/rotina/sentimento",
+        data={"data": dia_3, "sentimento": "cansativo"},
+        follow_redirects=False,
+    )
+
     resposta = client.get(f"/web/relatorio/pdf?id_crianca={id_crianca}&data={base}")
 
     assert resposta.status_code == 200
     assert "application/pdf" in resposta.content_type
     assert "attachment;" in resposta.headers.get("Content-Disposition", "")
+    assert resposta.data.startswith(b"%PDF")
+    assert len(resposta.data) > 1200
 
 
 def test_api_adiciona_item_rotina_com_tags_e_observacao(tmp_path):

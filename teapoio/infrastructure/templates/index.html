@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TeApoio - Painel Web</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="{% if not responsavel_selecionado %}auth-mode{% endif %}">
   <div class="orb orb-a"></div>
@@ -260,9 +261,17 @@
             <label>Horario (24h)
               <input name="horario" placeholder="08:00" required>
             </label>
-            <label>Tags da tarefa
-              <input name="tags" placeholder="#higiene, manha, casa">
-            </label>
+            <div class="field-group">
+              <p class="field-label">Tags da tarefa</p>
+              <div class="tag-selector tag-selector-preset">
+                {% for tag in tags_predefinidas %}
+                  <label class="tag-option">
+                    <input type="checkbox" name="tags" value="{{ tag }}">
+                    <span>#{{ tag }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            </div>
             <label>Observacao inicial
               <input name="observacao" placeholder="Opcional">
             </label>
@@ -291,111 +300,25 @@
             </div>
 
             <article class="sentimento-card">
-              <p><strong>Sentimento do dia:</strong> {{ rotina_exibicao.sentimento_dia_info.completo }}</p>
+              <p>
+                <strong>Sentimento do dia:</strong> {{ rotina_exibicao.sentimento_dia_info.completo }}
+                {% if rotina_exibicao.sentimento_dia_info.escala %}
+                  (Escala {{ rotina_exibicao.sentimento_dia_info.escala }}/5)
+                {% endif %}
+              </p>
               <form class="sentimento-form" method="post" action="{{ url_for('web_salvar_sentimento_rotina') }}">
                 <input type="hidden" name="data" value="{{ rotina_exibicao.data_referencia }}">
                 {% for opcao in sentimentos_disponiveis %}
                   <button
-                    class="btn btn-ghost btn-mini {% if rotina_exibicao.sentimento_dia == opcao.codigo %}is-selected{% endif %}"
+                    class="btn btn-ghost btn-mini {% if rotina_exibicao.sentimento_dia_info.escala == opcao.escala %}is-selected{% endif %}"
                     type="submit"
                     name="sentimento"
-                    value="{{ opcao.codigo }}"
-                  >{{ opcao.emoji }} {{ opcao.label }}</button>
+                    value="{{ opcao.escala }}"
+                  >{{ opcao.escala }} - {{ opcao.emoji }} {{ opcao.label }}</button>
                 {% endfor %}
                 <button class="btn btn-ghost btn-mini" type="submit" name="sentimento" value="">Limpar</button>
               </form>
             </article>
-
-            <!-- formulário para emoções detalhadas -->
-            <article class="emocao-card">
-              <h3>Registrar emoção detalhada</h3>
-              <form method="post" action="{{ url_for('web_salvar_emocao_rotina') }}">
-                <input type="hidden" name="data" value="{{ rotina_exibicao.data_referencia }}">
-                <label>Emoção
-                  <select name="emocao" required>
-                    {% for emo in Rotina.opcoes_emocoes_detalhadas() %}
-                      <option value="{{ emo }}">{{ emo }}</option>
-                    {% endfor %}
-                  </select>
-                </label>
-                <label>Escala (1–5)
-                  <input name="escala" type="number" min="1" max="5" required>
-                </label>
-                <button class="btn" type="submit">Registrar</button>
-              </form>
-              {% if rotina_exibicao.emocoes %}
-                <p>Já registradas:</p>
-                <ul>
-                  {% for emo, esc in rotina_exibicao.emocoes.items() %}
-                    <li>{{ emo }}: {{ esc }}</li>
-                  {% endfor %}
-                </ul>
-              {% endif %}
-            </article>
-
-            <!-- formulário para atividades -->
-            <article class="atividade-card">
-              <h3>Registrar atividade</h3>
-              <form method="post" action="{{ url_for('web_salvar_atividade_rotina') }}">
-                <input type="hidden" name="data" value="{{ rotina_exibicao.data_referencia }}">
-                <label>Nome
-                  <input name="nome" required>
-                </label>
-                <label>Tipo
-                  <select name="tipo" required>
-                    {% for tipo in Rotina.TIPOS_ATIVIDADE %}
-                      <option value="{{ tipo }}">{{ tipo }}</option>
-                    {% endfor %}
-                  </select>
-                </label>
-                <button class="btn" type="submit">Registrar</button>
-              </form>
-              {% if rotina_exibicao.atividades %}
-                <p>Atividades já registradas:</p>
-                <ul>
-                  {% for ativ in rotina_exibicao.atividades %}
-                    <li>{{ ativ.tipo }} – {{ ativ.nome }}</li>
-                  {% endfor %}
-                </ul>
-              {% endif %}
-            </article>
-
-            {% if estatisticas %}
-              <section class="card card-wide">
-                <h3>Estatísticas dos últimos {{ estatisticas.dias }} dias</h3>
-                <div>
-                  <h4>Distribuição por tipo de atividade</h4>
-                  <ul>
-                    {% for tipo, pct in estatisticas.distribuicao_tipos_atividade.items() %}
-                      <li>{{ tipo }}: {{ "%.1f"|format(pct) }}%</li>
-                    {% endfor %}
-                  </ul>
-                </div>
-                <div>
-                  <h4>Percentual por nome dentro de cada tipo</h4>
-                  {% for tipo, nomes in estatisticas.atividades_por_tipo_e_nome.items() %}
-                    <strong>{{ tipo }}:</strong>
-                    {% if nomes %}
-                      <ul>
-                        {% for nome, pct in nomes.items() %}
-                          <li>{{ nome }}: {{ "%.1f"|format(pct) }}%</li>
-                        {% endfor %}
-                      </ul>
-                    {% else %}
-                      <p>nenhuma atividade registrada</p>
-                    {% endif %}
-                  {% endfor %}
-                </div>
-                <div>
-                  <h4>Médias de emoções</h4>
-                  <ul>
-                    {% for emo, avg in estatisticas.medias_emocoes.items() %}
-                      <li>{{ emo }}: {{ "%.1f"|format(avg) }}</li>
-                    {% endfor %}
-                  </ul>
-                </div>
-              </section>
-            {% endif %}
 
             <div class="resumo-grid">
               <article class="resumo-item">
@@ -461,7 +384,14 @@
                         <input type="hidden" name="data" value="{{ rotina_exibicao.data_referencia }}">
                         <input type="hidden" name="indice" value="{{ loop.index0 }}">
                         <input name="observacao" value="{{ item.observacao }}" placeholder="Observacao rapida">
-                        <input name="tags" value="{{ item.tags|join(', ') }}" placeholder="tags: rotina, escola">
+                        <div class="tag-selector tag-selector-compact">
+                          {% for tag in tags_predefinidas %}
+                            <label class="tag-option">
+                              <input type="checkbox" name="tags" value="{{ tag }}" {% if tag in item.tags %}checked{% endif %}>
+                              <span>#{{ tag }}</span>
+                            </label>
+                          {% endfor %}
+                        </div>
                         <button class="btn btn-ghost btn-status" type="submit">Salvar nota + tags</button>
                       </form>
                     </div>
@@ -492,13 +422,28 @@
             <article class="periodo-card">
               <h3>{{ evolucao_periodo.semana.titulo }} ({{ evolucao_periodo.semana.inicio }} a {{ evolucao_periodo.semana.fim }})</h3>
               <p>{{ '%.1f'|format(evolucao_periodo.semana.percentual_concluido) }}% concluido | {{ evolucao_periodo.semana.concluidos }}/{{ evolucao_periodo.semana.total_itens }} itens</p>
-              <div class="progress"><span style="width: {{ '%.1f'|format(evolucao_periodo.semana.percentual_concluido) }}%"></span></div>
+              <div class="progress"><span data-progress="{{ '%.1f'|format(evolucao_periodo.semana.percentual_concluido) }}"></span></div>
             </article>
 
             <article class="periodo-card">
               <h3>{{ evolucao_periodo.mes.titulo }} ({{ evolucao_periodo.mes.inicio }} a {{ evolucao_periodo.mes.fim }})</h3>
               <p>{{ '%.1f'|format(evolucao_periodo.mes.percentual_concluido) }}% concluido | {{ evolucao_periodo.mes.concluidos }}/{{ evolucao_periodo.mes.total_itens }} itens</p>
-              <div class="progress"><span style="width: {{ '%.1f'|format(evolucao_periodo.mes.percentual_concluido) }}%"></span></div>
+              <div class="progress"><span data-progress="{{ '%.1f'|format(evolucao_periodo.mes.percentual_concluido) }}"></span></div>
+            </article>
+
+            <article class="periodo-card chart-block">
+              <h3>Grafico de acompanhamento</h3>
+              <div class="chart-wrap">
+                <canvas
+                  id="grafico-evolucao"
+                  data-semana-concluidos="{{ evolucao_periodo.semana.concluidos }}"
+                  data-semana-pendentes="{{ evolucao_periodo.semana.pendentes }}"
+                  data-semana-nao-realizados="{{ evolucao_periodo.semana.nao_realizados }}"
+                  data-mes-concluidos="{{ evolucao_periodo.mes.concluidos }}"
+                  data-mes-pendentes="{{ evolucao_periodo.mes.pendentes }}"
+                  data-mes-nao-realizados="{{ evolucao_periodo.mes.nao_realizados }}"
+                ></canvas>
+              </div>
             </article>
           </section>
         {% endif %}
@@ -621,5 +566,74 @@
       {% endif %}
     {% endif %}
   </main>
+
+  <script>
+    (function () {
+      const barras = document.querySelectorAll('.progress span[data-progress]');
+      barras.forEach((barra) => {
+        const valor = Number.parseFloat(barra.dataset.progress || '0');
+        const seguro = Number.isFinite(valor) ? Math.max(0, Math.min(100, valor)) : 0;
+        barra.style.width = `${seguro}%`;
+      });
+
+      const canvas = document.getElementById('grafico-evolucao');
+      if (!canvas || !window.Chart) {
+        return;
+      }
+
+      const toInt = (valor) => {
+        const numero = Number.parseInt(valor || '0', 10);
+        return Number.isFinite(numero) ? numero : 0;
+      };
+
+      const semanaConcluidos = toInt(canvas.dataset.semanaConcluidos);
+      const semanaPendentes = toInt(canvas.dataset.semanaPendentes);
+      const semanaNaoRealizados = toInt(canvas.dataset.semanaNaoRealizados);
+      const mesConcluidos = toInt(canvas.dataset.mesConcluidos);
+      const mesPendentes = toInt(canvas.dataset.mesPendentes);
+      const mesNaoRealizados = toInt(canvas.dataset.mesNaoRealizados);
+
+      new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: ['Semana', 'Mes'],
+          datasets: [
+            {
+              label: 'Concluidos',
+              data: [semanaConcluidos, mesConcluidos],
+              backgroundColor: '#177245'
+            },
+            {
+              label: 'Pendentes',
+              data: [semanaPendentes, mesPendentes],
+              backgroundColor: '#c46b36'
+            },
+            {
+              label: 'Nao realizados',
+              data: [semanaNaoRealizados, mesNaoRealizados],
+              backgroundColor: '#9a3412'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                precision: 0
+              }
+            }
+          }
+        }
+      });
+    })();
+  </script>
 </body>
 </html>

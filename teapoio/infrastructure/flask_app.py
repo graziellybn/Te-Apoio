@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import calendar
+from collections import Counter
 from datetime import date, datetime
 from datetime import timedelta
 import os
@@ -69,14 +70,59 @@ def _normalizar_tags_texto_livre(valor: str | None) -> list[str]:
     tags: list[str] = []
     vistos: set[str] = set()
     for item in tags_brutas:
-        tag = item.lstrip("#").strip()
-        if not tag:
-            continue
-        chave = tag.casefold()
-        if chave in vistos:
-            continue
-        vistos.add(chave)
-        tags.append(tag)
+        for parte in _normalizar_tags_texto_livre(item):
+            tag = parte.lstrip("#").strip()
+            if not tag:
+                continue
+            chave = tag.casefold()
+            if chave in vistos:
+                continue
+            vistos.add(chave)
+            tags.append(tag)
+    return tags
+
+
+TAGS_PREDEFINIDAS = [
+    "higiene",
+    "alimentacao",
+    "escola",
+    "lazer",
+    "sono",
+    "social",
+    "terapia",
+    "sensorial",
+]
+
+
+def _normalizar_tags_form(form_data: Any, campo: str = "tags") -> list[str]:
+    tags_brutas: list[str] = []
+
+    getlist = getattr(form_data, "getlist", None)
+    if callable(getlist):
+        tags_brutas = [str(item) for item in getlist(campo) if str(item).strip()]
+
+    if not tags_brutas:
+        valor_unico = ""
+        getter = getattr(form_data, "get", None)
+        if callable(getter):
+            valor_unico = str(getter(campo, "") or "")
+        return _normalizar_tags_texto_livre(valor_unico)
+
+    tags: list[str] = []
+    vistos: set[str] = set()
+    for item in tags_brutas:
+        partes = _normalizar_lista_texto_livre(item)
+        if not partes:
+            partes = [item]
+        for parte in partes:
+            tag = parte.lstrip("#").strip()
+            if not tag:
+                continue
+            chave = tag.casefold()
+            if chave in vistos:
+                continue
+            vistos.add(chave)
+            tags.append(tag)
     return tags
 
 
@@ -187,6 +233,57 @@ def _resumo_periodo_rotinas(
     }
 
 
+def _resumo_sentimentos_mes(
+    rotinas: list[Rotina],
+    id_crianca: str,
+    data_base: date,
+) -> dict[str, Any]:
+    dia_final = calendar.monthrange(data_base.year, data_base.month)[1]
+    inicio = date(data_base.year, data_base.month, 1)
+    fim = date(data_base.year, data_base.month, dia_final)
+
+    rotinas_mes = [
+        rotina
+        for rotina in rotinas
+        if rotina.id_crianca == id_crianca and inicio <= rotina.data_referencia <= fim
+    ]
+
+    contador: Counter[str] = Counter()
+    for rotina in rotinas_mes:
+        if rotina.sentimento_dia:
+            contador[rotina.sentimento_dia] += 1
+
+    sentimento_mais_frequente = "Nao informado"
+    if contador:
+        codigo_mais_frequente = max(contador.items(), key=lambda item: item[1])[0]
+        dados = Rotina.SENTIMENTOS_DIA.get(codigo_mais_frequente, {})
+        emoji = str(dados.get("emoji", "")).strip()
+        label = str(dados.get("label", codigo_mais_frequente)).strip()
+        sentimento_mais_frequente = f"{emoji} {label}".strip()
+
+    distribuicao: list[dict[str, Any]] = []
+    for escala, codigo in sorted(Rotina.SENTIMENTO_POR_ESCALA.items()):
+        dados = Rotina.SENTIMENTOS_DIA.get(codigo, {})
+        distribuicao.append(
+            {
+                "codigo": codigo,
+                "escala": escala,
+                "label": str(dados.get("label", codigo)),
+                "emoji": str(dados.get("emoji", "")),
+                "quantidade": int(contador.get(codigo, 0)),
+            }
+        )
+
+    return {
+        "inicio": inicio.strftime("%d/%m/%Y"),
+        "fim": fim.strftime("%d/%m/%Y"),
+        "dias_com_rotina": len(rotinas_mes),
+        "dias_com_sentimento": sum(contador.values()),
+        "sentimento_mais_frequente": sentimento_mais_frequente,
+        "distribuicao": distribuicao,
+    }
+
+
 def _aplicar_alertas_tempo(
     rotina: dict[str, Any],
     data_ref: date,
@@ -283,6 +380,278 @@ def _gerar_pdf_simples(linhas: list[str]) -> bytes:
     return pdf
 
 
+def _linha_barra_textual(texto: str) -> bool:
+    conteudo = texto.strip()
+    if not conteudo:
+        return False
+    if conteudo == "Sem sentimentos registrados no mes.":
+        return True
+    return "|" in conteudo and "(" in conteudo and conteudo.endswith(")")
+
+
+def _eh_titulo_grafico_sentimentos(texto: str) -> bool:
+    conteudo = texto.strip().casefold()
+    return "grafico" in conteudo and "sentimentos" in conteudo and "barras" in conteudo
+
+
+def _gerar_pdf_fallback_com_grafico(
+    linhas: list[str],
+    distribuicao_sentimentos: list[dict[str, Any]],
+) -> bytes:
+    def _escapar_pdf_texto(valor: str) -> str:
+        return valor.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+    comandos: list[str] = []
+    y = 800.0
+    ignorar_barras_textuais = False
+
+    for linha in linhas:
+        conteudo = str(linha).strip()
+
+        if not conteudo:
+            y -= 8
+            ignorar_barras_textuais = False
+            if y < 55:
+                break
+            continue
+
+        if _eh_titulo_grafico_sentimentos(conteudo):
+            texto = _escapar_pdf_texto(conteudo)
+            comandos.append(f"0 0 0 rg BT /F1 10 Tf 40 {y:.2f} Td ({texto}) Tj ET")
+            y -= 14
+
+            chart_left = 62.0
+            chart_bottom = max(95.0, y - 110.0)
+            chart_width = 450.0
+            chart_height = 92.0
+
+            # eixo horizontal
+            comandos.append(
+                f"0.80 0.80 0.80 rg {chart_left:.2f} {chart_bottom:.2f} {chart_width:.2f} 0.8 re f"
+            )
+            # eixo vertical
+            comandos.append(
+                f"0.80 0.80 0.80 rg {chart_left:.2f} {chart_bottom:.2f} 0.8 {chart_height:.2f} re f"
+            )
+
+            valores = [int(item.get("quantidade", 0)) for item in distribuicao_sentimentos]
+            rotulos = [str(item.get("label", "")).strip() for item in distribuicao_sentimentos]
+            maximo = max(valores, default=0)
+
+            if maximo <= 0 or not valores:
+                aviso = _escapar_pdf_texto("Sem sentimentos registrados no mes.")
+                comandos.append(
+                    f"0 0 0 rg BT /F1 9 Tf {chart_left + 8:.2f} {chart_bottom + 36:.2f} Td ({aviso}) Tj ET"
+                )
+            else:
+                total = max(1, len(valores))
+                slot = chart_width / total
+                bar_width = max(18.0, min(50.0, slot * 0.56))
+
+                for indice, quantidade in enumerate(valores):
+                    x = chart_left + (indice * slot) + ((slot - bar_width) / 2)
+                    altura = 0.0
+                    if quantidade > 0:
+                        altura = max(3.0, (quantidade / maximo) * chart_height)
+
+                    if altura > 0:
+                        comandos.append(
+                            f"0.06 0.46 0.43 rg {x:.2f} {chart_bottom:.2f} {bar_width:.2f} {altura:.2f} re f"
+                        )
+
+                    qtd_txt = _escapar_pdf_texto(str(quantidade))
+                    comandos.append(
+                        f"0 0 0 rg BT /F1 8 Tf {x + 2:.2f} {chart_bottom + altura + 4:.2f} Td ({qtd_txt}) Tj ET"
+                    )
+
+                    rotulo = _escapar_pdf_texto(rotulos[indice][:12])
+                    comandos.append(
+                        f"0 0 0 rg BT /F1 7 Tf {x - 2:.2f} {chart_bottom - 10:.2f} Td ({rotulo}) Tj ET"
+                    )
+
+            y = chart_bottom - 20
+            ignorar_barras_textuais = True
+            if y < 55:
+                break
+            continue
+
+        if ignorar_barras_textuais and _linha_barra_textual(conteudo):
+            continue
+
+        ignorar_barras_textuais = False
+        texto = _escapar_pdf_texto(conteudo)
+        comandos.append(f"0 0 0 rg BT /F1 10 Tf 40 {y:.2f} Td ({texto}) Tj ET")
+        y -= 14
+        if y < 40:
+            break
+
+    stream = "\n".join(comandos).encode("latin-1", errors="replace")
+
+    objetos = [
+        b"1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n",
+        b"2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n",
+        b"3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj\n",
+        b"4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n",
+        f"5 0 obj << /Length {len(stream)} >> stream\n".encode("ascii")
+        + stream
+        + b"\nendstream\nendobj\n",
+    ]
+
+    pdf = b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n"
+    offsets = [0]
+    for objeto in objetos:
+        offsets.append(len(pdf))
+        pdf += objeto
+
+    xref_inicio = len(pdf)
+    pdf += f"xref\n0 {len(offsets)}\n".encode("ascii")
+    pdf += b"0000000000 65535 f \n"
+    for offset in offsets[1:]:
+        pdf += f"{offset:010d} 00000 n \n".encode("ascii")
+
+    pdf += (
+        f"trailer << /Size {len(offsets)} /Root 1 0 R >>\n"
+        f"startxref\n{xref_inicio}\n%%EOF"
+    ).encode("ascii")
+    return pdf
+
+
+def _gerar_pdf_com_grafico(
+    linhas: list[str],
+    distribuicao_sentimentos: list[dict[str, Any]],
+) -> bytes:
+    try:
+        from io import BytesIO
+
+        from reportlab.graphics.charts.barcharts import VerticalBarChart
+        from reportlab.graphics.shapes import Drawing, String
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+        from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
+    except Exception:
+        return _gerar_pdf_fallback_com_grafico(linhas, distribuicao_sentimentos)
+
+    def _escapar_html(texto: str) -> str:
+        return texto.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    def _desenho_grafico() -> Drawing:
+        desenho = Drawing(520, 240)
+        rotulos = [str(item.get("label", "")).strip() for item in distribuicao_sentimentos]
+        valores = [int(item.get("quantidade", 0)) for item in distribuicao_sentimentos]
+
+        if not valores or max(valores, default=0) <= 0:
+            desenho.add(
+                String(
+                    24,
+                    120,
+                    "Sem sentimentos registrados no mes.",
+                    fontName="Helvetica",
+                    fontSize=10,
+                    fillColor=colors.HexColor("#1f2a2c"),
+                )
+            )
+            return desenho
+
+        grafico = VerticalBarChart()
+        grafico.x = 38
+        grafico.y = 46
+        grafico.width = 450
+        grafico.height = 155
+        grafico.data = [valores]
+        grafico.strokeColor = colors.HexColor("#9aa7a9")
+        grafico.valueAxis.valueMin = 0
+        maximo = max(valores)
+        grafico.valueAxis.valueMax = maximo + 1
+        grafico.valueAxis.valueStep = max(1, (maximo + 1 + 4) // 5)
+        grafico.categoryAxis.categoryNames = rotulos
+        grafico.categoryAxis.labels.angle = 20
+        grafico.categoryAxis.labels.dy = -14
+        grafico.categoryAxis.labels.fontName = "Helvetica"
+        grafico.categoryAxis.labels.fontSize = 8
+        grafico.bars[0].fillColor = colors.HexColor("#0f766e")
+        grafico.bars[0].strokeColor = colors.HexColor("#0b5d57")
+        desenho.add(grafico)
+        return desenho
+
+    buffer = BytesIO()
+    documento = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=34,
+        rightMargin=34,
+        topMargin=34,
+        bottomMargin=34,
+        title="Relatorio TeApoio",
+        pageCompression=0,
+    )
+
+    estilos_base = getSampleStyleSheet()
+    estilo_titulo = ParagraphStyle(
+        "TeApoioTitulo",
+        parent=estilos_base["Heading1"],
+        fontName="Helvetica-Bold",
+        fontSize=16,
+        leading=18,
+        spaceAfter=8,
+    )
+    estilo_secao = ParagraphStyle(
+        "TeApoioSecao",
+        parent=estilos_base["Heading3"],
+        fontName="Helvetica-Bold",
+        fontSize=11,
+        leading=14,
+        spaceBefore=4,
+        spaceAfter=4,
+    )
+    estilo_texto = ParagraphStyle(
+        "TeApoioTexto",
+        parent=estilos_base["Normal"],
+        fontName="Helvetica",
+        fontSize=10,
+        leading=13,
+        spaceAfter=2,
+    )
+
+    historia: list[Any] = []
+    titulo_renderizado = False
+    ignorar_barras_textuais = False
+    for linha in linhas:
+        texto = str(linha)
+        conteudo = texto.strip()
+
+        if not conteudo:
+            ignorar_barras_textuais = False
+            historia.append(Spacer(1, 5))
+            continue
+
+        if _eh_titulo_grafico_sentimentos(conteudo):
+            historia.append(Paragraph(_escapar_html(conteudo), estilo_secao))
+            historia.append(_desenho_grafico())
+            historia.append(Spacer(1, 8))
+            ignorar_barras_textuais = True
+            continue
+
+        if ignorar_barras_textuais and _linha_barra_textual(conteudo):
+            continue
+
+        if not titulo_renderizado:
+            historia.append(Paragraph(_escapar_html(conteudo), estilo_titulo))
+            titulo_renderizado = True
+            continue
+
+        if ":" not in conteudo and (len(conteudo) <= 38 or conteudo.isupper()):
+            historia.append(Paragraph(_escapar_html(conteudo), estilo_secao))
+        else:
+            historia.append(Paragraph(_escapar_html(conteudo), estilo_texto))
+
+    try:
+        documento.build(historia)
+        return buffer.getvalue()
+    except Exception:
+        return _gerar_pdf_fallback_com_grafico(linhas, distribuicao_sentimentos)
+
+
 class EstadoApi:
     """Mantem estado de dominio em memoria e persiste no mesmo JSON da CLI."""
 
@@ -376,11 +745,8 @@ class EstadoApi:
             "sentimento_dia": rotina.sentimento_dia,
             "sentimento_dia_info": rotina.sentimento_dia_info,
             "itens": [self.item_para_dict(item) for item in rotina.itens],
-            # novos campos para registro de emoções e atividades
+            # campo mantido para compatibilidade de emoções detalhadas
             "emocoes": rotina.obter_emocoes(),
-            "atividades": [
-                {"nome": ativ.nome, "tipo": ativ.tipo} for ativ in rotina.atividades
-            ],
             "resumo": resumo,
         }
 
@@ -597,15 +963,6 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
                     ),
                 }
                 lembretes_rotina = _aplicar_alertas_tempo(rotina_exibicao, data_ref)
-                # gerar estatísticas para o painel
-                from teapoio.application.services.servico_estatisticas import ServicoEstatisticas
-                todas_rotinas = [r for r in estado.rotinas if r.id_crianca == crianca.id_crianca]
-                estatisticas = {
-                    "dias": 30,
-                    "atividades_por_tipo_e_nome": ServicoEstatisticas.atividades_por_tipo_e_nome(todas_rotinas, dias=30),
-                    "distribuicao_tipos_atividade": ServicoEstatisticas.distribuicao_tipos_atividade(todas_rotinas, dias=30),
-                    "medias_emocoes": ServicoEstatisticas.medias_emocoes(todas_rotinas, dias=30),
-                }
             except ValueError as erro:
                 flash(str(erro), "erro")
 
@@ -650,8 +1007,7 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
             perfil_visualizacao=perfil_visualizacao,
             onboarding=onboarding,
             sentimentos_disponiveis=sentimentos_disponiveis,
-            estatisticas=locals().get('estatisticas'),
-            Rotina=Rotina,
+            tags_predefinidas=TAGS_PREDEFINIDAS,
         )
 
     @app.post("/web/responsavel/cadastrar")
@@ -875,7 +1231,7 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
                 nome_item=request.form.get("nome", ""),
                 horario=request.form.get("horario", ""),
                 observacao=request.form.get("observacao", ""),
-                tags=_normalizar_tags_texto_livre(request.form.get("tags", "")),
+                tags=_normalizar_tags_form(request.form, "tags"),
             )
             estado.persistir()
         except (TypeError, ValueError) as erro:
@@ -996,33 +1352,6 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
         flash("Emoção registrada com sucesso.", "sucesso")
         return redirect(url_for("pagina_inicial", secao="rotina", data_rotina=data_ref.isoformat()))
 
-    @app.post("/web/rotina/atividade")
-    def web_salvar_atividade_rotina():
-        responsavel = _responsavel_sessao()
-        crianca = _crianca_sessao(responsavel)
-        if crianca is None:
-            flash("Selecione uma crianca antes de registrar atividade.", "erro")
-            return redirect(url_for("pagina_inicial", secao="criancas"))
-
-        data_texto = request.form.get("data", "")
-        nome = request.form.get("nome", "")
-        tipo = request.form.get("tipo", "")
-        try:
-            data_ref = _parse_data(data_texto)
-            rotina, _ = estado.servico_rotinas.obter_ou_criar_rotina(
-                rotinas=estado.rotinas,
-                id_crianca=crianca.id_crianca,
-                data_referencia=data_ref,
-            )
-            rotina.registrar_atividade(nome, tipo)
-            estado.persistir()
-        except (TypeError, ValueError) as erro:
-            flash(str(erro), "erro")
-            return redirect(url_for("pagina_inicial", secao="rotina", data_rotina=data_texto))
-
-        flash("Atividade registrada com sucesso.", "sucesso")
-        return redirect(url_for("pagina_inicial", secao="rotina", data_rotina=data_ref.isoformat()))
-
     @app.post("/web/perfil-sensorial/salvar")
     def web_salvar_perfil_sensorial():
         responsavel = _responsavel_sessao()
@@ -1119,54 +1448,78 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
         perfil = estado.obter_perfil_responsavel(responsavel)
         perfil_sensorial = perfil.obter_perfil_sensorial(crianca.id_crianca)
         resumo = estado.servico_monitoramento.obter_resumo_rotina(rotina)
+        resumo_mes_itens = _resumo_periodo_rotinas(
+            estado.rotinas,
+            crianca.id_crianca,
+            data_ref,
+            "mes",
+        )
+        resumo_mes_sentimentos = _resumo_sentimentos_mes(
+            estado.rotinas,
+            crianca.id_crianca,
+            data_ref,
+        )
+
+        distribuicao_mes = resumo_mes_sentimentos["distribuicao"]
 
         linhas = [
-            "Relatorio TeApoio",
+            "Relatorio TeApoio - Visao Geral",
             f"Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}",
             "",
+            "DADOS PRINCIPAIS",
             f"Responsavel: {responsavel.nome}",
             f"Email: {responsavel.email}",
             f"Crianca: {crianca.nome} (ID {crianca.id_crianca})",
-            f"Data da rotina: {data_ref.strftime('%d/%m/%Y')}",
-            f"Sentimento do dia: {rotina.sentimento_dia_info['label']}",
+            f"Mes de referencia: {_mes_nome_pt_br(data_ref.month)}/{data_ref.year}",
             "",
-            "Resumo da rotina",
-            f"Concluidos: {resumo['concluidos']} | Pendentes: {resumo['pendentes']} | Nao realizados: {resumo['nao_realizados']}",
-            f"Percentual concluido: {resumo['percentual_concluido']:.1f}%",
+            "RESUMO MENSAL",
+            f"- Periodo analisado: {resumo_mes_sentimentos['inicio']} ate {resumo_mes_sentimentos['fim']}",
+            f"- Dias com rotina registrada: {resumo_mes_sentimentos['dias_com_rotina']}",
+            f"- Dias com sentimento registrado: {resumo_mes_sentimentos['dias_com_sentimento']}",
+            f"- Itens no mes: {resumo_mes_itens['total_itens']}",
+            f"- Concluidos: {resumo_mes_itens['concluidos']}",
+            f"- Pendentes: {resumo_mes_itens['pendentes']}",
+            f"- Nao realizados: {resumo_mes_itens['nao_realizados']}",
+            f"- Percentual concluido no mes: {resumo_mes_itens['percentual_concluido']:.1f}%",
             "",
-            "Itens da rotina",
+            "GRAFICO DE SENTIMENTOS NO MES (BARRAS)",
         ]
 
-        if rotina.itens:
-            for indice, item in enumerate(rotina.itens, start=1):
-                observacao = item.observacao or "sem observacao"
-                tags = ", ".join(f"#{tag}" for tag in item.tags) or "sem tags"
-                linhas.append(
-                    f"{indice}. [{item.horario}] {item.nome} - {item.status} - Tags: {tags} - Nota: {observacao}"
-                )
-        else:
-            linhas.append("Nenhum item cadastrado para esta data.")
+        linhas.extend(
+            [
+                "",
+                "DETALHE DO DIA SELECIONADO",
+                f"Data da rotina: {data_ref.strftime('%d/%m/%Y')}",
+                f"Sentimento do dia: {rotina.sentimento_dia_info['label']}",
+                "",
+                "RESUMO DA ROTINA DO DIA",
+                f"- Concluidos: {resumo['concluidos']}",
+                f"- Pendentes: {resumo['pendentes']}",
+                f"- Nao realizados: {resumo['nao_realizados']}",
+                f"Percentual concluido: {resumo['percentual_concluido']:.1f}%",
+            ]
+        )
 
-        linhas.extend(["", "Perfil sensorial"])
+        linhas.extend(["", "PERFIL SENSORIAL"])
         if perfil_sensorial is None:
-            linhas.append("Nao cadastrado.")
+            linhas.append("- Nao cadastrado.")
         else:
             linhas.extend(
                 [
-                    "Hipersensibilidades: "
+                    "- Hipersensibilidades: "
                     + (", ".join(perfil_sensorial.hipersensibilidades) or "Nao informado"),
-                    "Hipossensibilidades: "
+                    "- Hipossensibilidades: "
                     + (", ".join(perfil_sensorial.hipossensibilidades) or "Nao informado"),
-                    "Hiperfocos: "
+                    "- Hiperfocos: "
                     + (", ".join(perfil_sensorial.hiperfocos) or "Nao informado"),
-                    "Seletividade alimentar: "
+                    "- Seletividade alimentar: "
                     + (", ".join(perfil_sensorial.seletividade_alimentar) or "Nao informado"),
-                    "Estrategias de regulacao: "
+                    "- Estrategias de regulacao: "
                     + (", ".join(perfil_sensorial.estrategias_regulacao) or "Nao informado"),
                 ]
             )
 
-        pdf_bytes = _gerar_pdf_simples(linhas)
+        pdf_bytes = _gerar_pdf_com_grafico(linhas, distribuicao_mes)
         nome_arquivo = f"relatorio_{crianca.id_crianca}_{data_ref.isoformat()}.pdf"
         return Response(
             pdf_bytes,
@@ -1219,7 +1572,6 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
         data_texto = request.form.get("data", "")
         indice_texto = str(request.form.get("indice", "")).strip()
         observacao = request.form.get("observacao", "")
-        tags_texto = request.form.get("tags", "")
 
         try:
             data_ref = _parse_data(data_texto)
@@ -1230,7 +1582,7 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
                 data_referencia=data_ref,
             )
             rotina.itens[indice].atualizar_observacao(observacao)
-            rotina.itens[indice].atualizar_tags(_normalizar_tags_texto_livre(tags_texto))
+            rotina.itens[indice].atualizar_tags(_normalizar_tags_form(request.form, "tags"))
             estado.persistir()
         except (TypeError, ValueError, IndexError) as erro:
             flash(str(erro), "erro")
@@ -1658,56 +2010,5 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
 
         estado.persistir()
         return jsonify({"emocoes": rotina.obter_emocoes()}), 200
-
-    @app.patch("/rotinas/<id_crianca>/atividade")
-    def registrar_atividade_rotina(id_crianca: str):
-        crianca = estado.buscar_crianca(id_crianca)
-        if crianca is None:
-            return _erro("Crianca nao encontrada.", 404)
-
-        payload = request.get_json(silent=True)
-        if not isinstance(payload, dict):
-            return _erro("Corpo JSON invalido.", 400)
-
-        try:
-            data_ref = _parse_data(payload.get("data"), padrao=estado.data_calendario)
-            rotina, _ = estado.servico_rotinas.obter_ou_criar_rotina(
-                rotinas=estado.rotinas,
-                id_crianca=id_crianca,
-                data_referencia=data_ref,
-            )
-            nome = payload.get("nome", "")
-            tipo = payload.get("tipo", "")
-            rotina.registrar_atividade(nome, tipo)
-        except (TypeError, ValueError) as erro:
-            return _erro(str(erro), 400)
-
-        estado.persistir()
-        return jsonify({"atividades": [
-            {"nome": a.nome, "tipo": a.tipo} for a in rotina.atividades
-        ]}), 200
-
-    @app.get("/rotinas/<id_crianca>/estatisticas")
-    def obter_estatisticas(id_crianca: str):
-        crianca = estado.buscar_crianca(id_crianca)
-        if crianca is None:
-            return _erro("Crianca nao encontrada.", 404)
-
-        dias_raw = request.args.get("dias")
-        try:
-            dias = int(dias_raw) if dias_raw is not None else 30
-        except ValueError:
-            return _erro("Parametro 'dias' deve ser numero.", 400)
-        try:
-            from teapoio.application.services.servico_estatisticas import ServicoEstatisticas
-            rotinas_crianca = [r for r in estado.rotinas if r.id_crianca == id_crianca]
-            resultado = {
-                "atividades_por_tipo_e_nome": ServicoEstatisticas.atividades_por_tipo_e_nome(rotinas_crianca, dias=dias),
-                "distribuicao_tipos_atividade": ServicoEstatisticas.distribuicao_tipos_atividade(rotinas_crianca, dias=dias),
-                "medias_emocoes": ServicoEstatisticas.medias_emocoes(rotinas_crianca, dias=dias),
-            }
-        except ValueError as erro:
-            return _erro(str(erro), 400)
-        return jsonify(resultado)
 
     return app

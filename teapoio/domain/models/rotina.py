@@ -3,7 +3,6 @@ from typing import Iterable, List, Protocol
 
 from teapoio.domain.models.evolucao import Evolucao
 from teapoio.domain.models.item_rotina import ItemRotina
-from teapoio.domain.models.atividade import Atividade
 
 
 class ResolvedorStatusRotina(Protocol):
@@ -54,17 +53,23 @@ class CalculadoraEvolucaoPadrao:
 class Rotina:
     """[SOLID: SRP, OCP, DIP] Entidade de rotina com regras de dominio.
 
-    A classe passou a suportar registro de atividades e escala de emoçõdes
-    detalhadas. O histórico de atividades e emoções fica disponível para
-    cálculo de estatísticas.
+    A classe suporta registro de sentimentos e emocoes detalhadas em escala.
     """
 
     SENTIMENTOS_DIA = {
-        "otimo": {"emoji": "🤩", "label": "Otimo"},
-        "bem": {"emoji": "🙂", "label": "Bem"},
-        "neutro": {"emoji": "😐", "label": "Neutro"},
-        "dificil": {"emoji": "😟", "label": "Dificil"},
-        "cansativo": {"emoji": "😴", "label": "Cansativo"},
+        "otimo": {"emoji": "🤩", "label": "Otimo", "escala": 5},
+        "bem": {"emoji": "🙂", "label": "Bem", "escala": 4},
+        "neutro": {"emoji": "😐", "label": "Neutro", "escala": 3},
+        "dificil": {"emoji": "😟", "label": "Dificil", "escala": 2},
+        "cansativo": {"emoji": "😴", "label": "Cansativo", "escala": 1},
+    }
+
+    SENTIMENTO_POR_ESCALA = {
+        5: "otimo",
+        4: "bem",
+        3: "neutro",
+        2: "dificil",
+        1: "cansativo",
     }
 
     # lista de emoções que podem ser pontuadas de 1..5
@@ -80,9 +85,6 @@ class Rotina:
         "entediado",
     ]
 
-    # tipos principais de atividade aceitos
-    TIPOS_ATIVIDADE = {"cognitivo", "social", "lazer"}
-
     def __init__(
         self,
         id_crianca,
@@ -97,8 +99,6 @@ class Rotina:
         self.sentimento_dia = sentimento_dia
         # estrutura para emoções detalhadas: cada emoção mapeia para escala 1..5
         self._emocao_escalas: dict[str, int] = {}
-        # lista de atividades realizadas no dia
-        self.atividades: list[Atividade] = []
         self._resolvedor_status = resolvedor_status or ResolvedorStatusPadrao()
         self._calculadora_evolucao = calculadora_evolucao or CalculadoraEvolucaoPadrao()
 
@@ -109,10 +109,37 @@ class Rotina:
                 "codigo": codigo,
                 "emoji": dados["emoji"],
                 "label": dados["label"],
+                "escala": str(dados["escala"]),
                 "completo": f"{dados['emoji']} {dados['label']}",
             }
             for codigo, dados in cls.SENTIMENTOS_DIA.items()
         ]
+
+    @classmethod
+    def sentimento_por_escala(cls, escala: int) -> str:
+        if escala not in cls.SENTIMENTO_POR_ESCALA:
+            raise ValueError("Escala de sentimento invalida. Use 1, 2, 3, 4 ou 5.")
+        return cls.SENTIMENTO_POR_ESCALA[escala]
+
+    @classmethod
+    def normalizar_sentimento_entrada(cls, valor: str | None) -> str:
+        if valor is None:
+            return ""
+        if not isinstance(valor, str):
+            raise TypeError("Sentimento do dia deve ser uma string.")
+
+        sentimento = valor.strip().lower()
+        if not sentimento:
+            return ""
+
+        if sentimento.isdigit():
+            return cls.sentimento_por_escala(int(sentimento))
+
+        if sentimento not in cls.SENTIMENTOS_DIA:
+            permitidos = ", ".join(sorted(cls.SENTIMENTOS_DIA))
+            raise ValueError(f"Sentimento invalido. Permitidos: {permitidos} ou escala 1..5.")
+
+        return sentimento
 
     @classmethod
     def opcoes_emocoes_detalhadas(cls) -> list[str]:
@@ -169,21 +196,7 @@ class Rotina:
 
     @sentimento_dia.setter
     def sentimento_dia(self, valor: str | None) -> None:
-        if valor is None:
-            self.__sentimento_dia = ""
-            return
-        if not isinstance(valor, str):
-            raise TypeError("Sentimento do dia deve ser uma string.")
-
-        sentimento = valor.strip().lower()
-        if not sentimento:
-            self.__sentimento_dia = ""
-            return
-        if sentimento not in self.SENTIMENTOS_DIA:
-            permitidos = ", ".join(sorted(self.SENTIMENTOS_DIA))
-            raise ValueError(f"Sentimento invalido. Permitidos: {permitidos}.")
-
-        self.__sentimento_dia = sentimento
+        self.__sentimento_dia = self.normalizar_sentimento_entrada(valor)
 
     @property
     def sentimento_dia_info(self) -> dict[str, str]:
@@ -192,6 +205,7 @@ class Rotina:
                 "codigo": "",
                 "emoji": "",
                 "label": "Nao informado",
+                "escala": "",
                 "completo": "Nao informado",
             }
 
@@ -200,6 +214,7 @@ class Rotina:
             "codigo": self.sentimento_dia,
             "emoji": dados["emoji"],
             "label": dados["label"],
+            "escala": str(dados["escala"]),
             "completo": f"{dados['emoji']} {dados['label']}",
         }
 
@@ -251,7 +266,7 @@ class Rotina:
         self.sentimento_dia = sentimento
 
     # ------------------------------------------------------------------
-    # novos métodos de registro de emoções/atividades
+    # metodos de registro de emocoes detalhadas
     # ------------------------------------------------------------------
     def registrar_emocao(self, emot: str, escala: int) -> None:
         """Armazena uma escala de 1..5 para uma das emoções detalhadas."""
@@ -268,13 +283,6 @@ class Rotina:
     def obter_emocoes(self) -> dict[str, int]:
         """Retorna cópia das emoções registradas e suas escalas."""
         return dict(self._emocao_escalas)
-
-    def registrar_atividade(self, nome: str, tipo: str) -> None:
-        """Adiciona uma atividade categorizada à lista de atividades do dia."""
-        self.atividades.append(Atividade(nome, tipo))
-
-    def listar_atividades(self) -> list["Atividade"]:
-        return list(self.atividades)
 
 def obter_sugestoes_tea():
     return [

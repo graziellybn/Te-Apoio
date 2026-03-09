@@ -326,8 +326,6 @@ class SerializadorEstadoRelatorio:
         emocoes = rotina.obter_emocoes()
         if emocoes:
             payload["emocoes"] = emocoes
-        if rotina.atividades:
-            payload["atividades"] = [a.to_dict() for a in rotina.atividades]
         return payload
 
     @staticmethod
@@ -355,25 +353,12 @@ class SerializadorEstadoRelatorio:
         except (TypeError, ValueError):
             return None
 
-        # carga das emoções e atividades (compatibilidade com dados antigos)
+        # carga das emoções detalhadas (compatibilidade com dados antigos)
         emocoes_brutas = bruto.get("emocoes")
-        if isinstance(emocoes_brutos, dict):
-            for emo, escala in emocoes_brutos.items():
+        if isinstance(emocoes_brutas, dict):
+            for emo, escala in emocoes_brutas.items():
                 try:
                     rotina.registrar_emocao(emo, int(escala))
-                except (TypeError, ValueError):
-                    continue
-
-        atividades_brutas = bruto.get("atividades", [])
-        if isinstance(atividades_brutas, list):
-            for bruto_ativ in atividades_brutas:
-                if not isinstance(bruto_ativ, dict):
-                    continue
-                try:
-                    rotina.registrar_atividade(
-                        bruto_ativ.get("nome", ""),
-                        bruto_ativ.get("tipo", ""),
-                    )
                 except (TypeError, ValueError):
                     continue
 

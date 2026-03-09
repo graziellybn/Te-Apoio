@@ -26,12 +26,6 @@ class ServicoMonitoramento:
 			for emo, escala in emocoes.items():
 				linhas.append(f" - {emo}: {escala}")
 
-		# incluir atividades realizadas, se houver
-		if rotina.atividades:
-			linhas.append("\n[ATIVIDADES REALIZADAS]")
-			for ativ in rotina.atividades:
-				linhas.append(f" - {ativ.tipo}: {ativ.nome}")
-
 		resumo = self.obter_resumo_rotina(rotina)
 		linhas.append(
 			f"\n[EVOLUCAO DO DIA]: {resumo['percentual_concluido']:.1f}% concluido "
