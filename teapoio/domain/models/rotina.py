@@ -3,6 +3,7 @@ from typing import Iterable, List, Protocol
 
 from teapoio.domain.models.evolucao import Evolucao
 from teapoio.domain.models.item_rotina import ItemRotina
+from teapoio.domain.models.atividade import Atividade
 
 
 class ResolvedorStatusRotina(Protocol):
@@ -51,7 +52,12 @@ class CalculadoraEvolucaoPadrao:
 
 
 class Rotina:
-    """[SOLID: SRP, OCP, DIP] Entidade de rotina com regras de dominio."""
+    """[SOLID: SRP, OCP, DIP] Entidade de rotina com regras de dominio.
+
+    A classe passou a suportar registro de atividades e escala de emoçõdes
+    detalhadas. O histórico de atividades e emoções fica disponível para
+    cálculo de estatísticas.
+    """
 
     SENTIMENTOS_DIA = {
         "otimo": {"emoji": "🤩", "label": "Otimo"},
@@ -60,6 +66,22 @@ class Rotina:
         "dificil": {"emoji": "😟", "label": "Dificil"},
         "cansativo": {"emoji": "😴", "label": "Cansativo"},
     }
+
+    # lista de emoções que podem ser pontuadas de 1..5
+    EMOCOES_DETALHADAS = [
+        "feliz",
+        "calmo",
+        "ansioso",
+        "irritado",
+        "frustrado",
+        "triste",
+        "sobrecarregado",
+        "confuso",
+        "entediado",
+    ]
+
+    # tipos principais de atividade aceitos
+    TIPOS_ATIVIDADE = {"cognitivo", "social", "lazer"}
 
     def __init__(
         self,
@@ -73,6 +95,10 @@ class Rotina:
         self.data_referencia = self._validar_data_referencia(data_referencia)
         self.itens: List[ItemRotina] = []
         self.sentimento_dia = sentimento_dia
+        # estrutura para emoções detalhadas: cada emoção mapeia para escala 1..5
+        self._emocao_escalas: dict[str, int] = {}
+        # lista de atividades realizadas no dia
+        self.atividades: list[Atividade] = []
         self._resolvedor_status = resolvedor_status or ResolvedorStatusPadrao()
         self._calculadora_evolucao = calculadora_evolucao or CalculadoraEvolucaoPadrao()
 
@@ -87,6 +113,11 @@ class Rotina:
             }
             for codigo, dados in cls.SENTIMENTOS_DIA.items()
         ]
+
+    @classmethod
+    def opcoes_emocoes_detalhadas(cls) -> list[str]:
+        """Retorna a lista de emoções que podem ser pontuadas."""
+        return list(cls.EMOCOES_DETALHADAS)
 
     @staticmethod
     def _validar_id_crianca(id_crianca) -> str:
@@ -218,6 +249,32 @@ class Rotina:
 
     def atualizar_sentimento_dia(self, sentimento: str | None) -> None:
         self.sentimento_dia = sentimento
+
+    # ------------------------------------------------------------------
+    # novos métodos de registro de emoções/atividades
+    # ------------------------------------------------------------------
+    def registrar_emocao(self, emot: str, escala: int) -> None:
+        """Armazena uma escala de 1..5 para uma das emoções detalhadas."""
+        if not isinstance(emot, str):
+            raise TypeError("Emoção deve ser uma string.")
+        chave = emot.strip().lower()
+        if chave not in self.EMOCOES_DETALHADAS:
+            permitidas = ", ".join(sorted(self.EMOCOES_DETALHADAS))
+            raise ValueError(f"Emoção inválida. Permitidas: {permitidas}.")
+        if not isinstance(escala, int) or escala < 1 or escala > 5:
+            raise ValueError("Escala de emoção deve ser inteiro entre 1 e 5.")
+        self._emocao_escalas[chave] = escala
+
+    def obter_emocoes(self) -> dict[str, int]:
+        """Retorna cópia das emoções registradas e suas escalas."""
+        return dict(self._emocao_escalas)
+
+    def registrar_atividade(self, nome: str, tipo: str) -> None:
+        """Adiciona uma atividade categorizada à lista de atividades do dia."""
+        self.atividades.append(Atividade(nome, tipo))
+
+    def listar_atividades(self) -> list["Atividade"]:
+        return list(self.atividades)
 
 def obter_sugestoes_tea():
     return [
