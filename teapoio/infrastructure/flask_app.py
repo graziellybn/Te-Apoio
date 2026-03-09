@@ -376,6 +376,11 @@ class EstadoApi:
             "sentimento_dia": rotina.sentimento_dia,
             "sentimento_dia_info": rotina.sentimento_dia_info,
             "itens": [self.item_para_dict(item) for item in rotina.itens],
+            # novos campos para registro de emoções e atividades
+            "emocoes": rotina.obter_emocoes(),
+            "atividades": [
+                {"nome": ativ.nome, "tipo": ativ.tipo} for ativ in rotina.atividades
+            ],
             "resumo": resumo,
         }
 
@@ -592,6 +597,15 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
                     ),
                 }
                 lembretes_rotina = _aplicar_alertas_tempo(rotina_exibicao, data_ref)
+                # gerar estatísticas para o painel
+                from teapoio.application.services.servico_estatisticas import ServicoEstatisticas
+                todas_rotinas = [r for r in estado.rotinas if r.id_crianca == crianca.id_crianca]
+                estatisticas = {
+                    "dias": 30,
+                    "atividades_por_tipo_e_nome": ServicoEstatisticas.atividades_por_tipo_e_nome(todas_rotinas, dias=30),
+                    "distribuicao_tipos_atividade": ServicoEstatisticas.distribuicao_tipos_atividade(todas_rotinas, dias=30),
+                    "medias_emocoes": ServicoEstatisticas.medias_emocoes(todas_rotinas, dias=30),
+                }
             except ValueError as erro:
                 flash(str(erro), "erro")
 
@@ -636,6 +650,8 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
             perfil_visualizacao=perfil_visualizacao,
             onboarding=onboarding,
             sentimentos_disponiveis=sentimentos_disponiveis,
+            estatisticas=locals().get('estatisticas'),
+            Rotina=Rotina,
         )
 
     @app.post("/web/responsavel/cadastrar")
@@ -951,6 +967,60 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
             return redirect(url_for("pagina_inicial", secao="rotina", data_rotina=data_texto))
 
         flash("Sentimento do dia atualizado com sucesso.", "sucesso")
+        return redirect(url_for("pagina_inicial", secao="rotina", data_rotina=data_ref.isoformat()))
+
+    @app.post("/web/rotina/emocao")
+    def web_salvar_emocao_rotina():
+        responsavel = _responsavel_sessao()
+        crianca = _crianca_sessao(responsavel)
+        if crianca is None:
+            flash("Selecione uma crianca antes de registrar emoção.", "erro")
+            return redirect(url_for("pagina_inicial", secao="criancas"))
+
+        data_texto = request.form.get("data", "")
+        emocao = request.form.get("emocao", "")
+        escala = request.form.get("escala", "")
+        try:
+            data_ref = _parse_data(data_texto)
+            rotina, _ = estado.servico_rotinas.obter_ou_criar_rotina(
+                rotinas=estado.rotinas,
+                id_crianca=crianca.id_crianca,
+                data_referencia=data_ref,
+            )
+            rotina.registrar_emocao(emocao, int(escala))
+            estado.persistir()
+        except (TypeError, ValueError) as erro:
+            flash(str(erro), "erro")
+            return redirect(url_for("pagina_inicial", secao="rotina", data_rotina=data_texto))
+
+        flash("Emoção registrada com sucesso.", "sucesso")
+        return redirect(url_for("pagina_inicial", secao="rotina", data_rotina=data_ref.isoformat()))
+
+    @app.post("/web/rotina/atividade")
+    def web_salvar_atividade_rotina():
+        responsavel = _responsavel_sessao()
+        crianca = _crianca_sessao(responsavel)
+        if crianca is None:
+            flash("Selecione uma crianca antes de registrar atividade.", "erro")
+            return redirect(url_for("pagina_inicial", secao="criancas"))
+
+        data_texto = request.form.get("data", "")
+        nome = request.form.get("nome", "")
+        tipo = request.form.get("tipo", "")
+        try:
+            data_ref = _parse_data(data_texto)
+            rotina, _ = estado.servico_rotinas.obter_ou_criar_rotina(
+                rotinas=estado.rotinas,
+                id_crianca=crianca.id_crianca,
+                data_referencia=data_ref,
+            )
+            rotina.registrar_atividade(nome, tipo)
+            estado.persistir()
+        except (TypeError, ValueError) as erro:
+            flash(str(erro), "erro")
+            return redirect(url_for("pagina_inicial", secao="rotina", data_rotina=data_texto))
+
+        flash("Atividade registrada com sucesso.", "sucesso")
         return redirect(url_for("pagina_inicial", secao="rotina", data_rotina=data_ref.isoformat()))
 
     @app.post("/web/perfil-sensorial/salvar")
@@ -1560,5 +1630,84 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
 
         estado.persistir()
         return jsonify({"sentimento_dia": rotina.sentimento_dia, "sentimento_dia_info": rotina.sentimento_dia_info})
+
+    @app.patch("/rotinas/<id_crianca>/emocao")
+    def registrar_emocao_rotina(id_crianca: str):
+        crianca = estado.buscar_crianca(id_crianca)
+        if crianca is None:
+            return _erro("Crianca nao encontrada.", 404)
+
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            return _erro("Corpo JSON invalido.", 400)
+
+        try:
+            data_ref = _parse_data(payload.get("data"), padrao=estado.data_calendario)
+            rotina, _ = estado.servico_rotinas.obter_ou_criar_rotina(
+                rotinas=estado.rotinas,
+                id_crianca=id_crianca,
+                data_referencia=data_ref,
+            )
+            emot = payload.get("emocao")
+            escala = payload.get("escala")
+            if emot is None or escala is None:
+                raise ValueError("Campos 'emocao' e 'escala' sao obrigatorios.")
+            rotina.registrar_emocao(emot, int(escala))
+        except (TypeError, ValueError) as erro:
+            return _erro(str(erro), 400)
+
+        estado.persistir()
+        return jsonify({"emocoes": rotina.obter_emocoes()}), 200
+
+    @app.patch("/rotinas/<id_crianca>/atividade")
+    def registrar_atividade_rotina(id_crianca: str):
+        crianca = estado.buscar_crianca(id_crianca)
+        if crianca is None:
+            return _erro("Crianca nao encontrada.", 404)
+
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            return _erro("Corpo JSON invalido.", 400)
+
+        try:
+            data_ref = _parse_data(payload.get("data"), padrao=estado.data_calendario)
+            rotina, _ = estado.servico_rotinas.obter_ou_criar_rotina(
+                rotinas=estado.rotinas,
+                id_crianca=id_crianca,
+                data_referencia=data_ref,
+            )
+            nome = payload.get("nome", "")
+            tipo = payload.get("tipo", "")
+            rotina.registrar_atividade(nome, tipo)
+        except (TypeError, ValueError) as erro:
+            return _erro(str(erro), 400)
+
+        estado.persistir()
+        return jsonify({"atividades": [
+            {"nome": a.nome, "tipo": a.tipo} for a in rotina.atividades
+        ]}), 200
+
+    @app.get("/rotinas/<id_crianca>/estatisticas")
+    def obter_estatisticas(id_crianca: str):
+        crianca = estado.buscar_crianca(id_crianca)
+        if crianca is None:
+            return _erro("Crianca nao encontrada.", 404)
+
+        dias_raw = request.args.get("dias")
+        try:
+            dias = int(dias_raw) if dias_raw is not None else 30
+        except ValueError:
+            return _erro("Parametro 'dias' deve ser numero.", 400)
+        try:
+            from teapoio.application.services.servico_estatisticas import ServicoEstatisticas
+            rotinas_crianca = [r for r in estado.rotinas if r.id_crianca == id_crianca]
+            resultado = {
+                "atividades_por_tipo_e_nome": ServicoEstatisticas.atividades_por_tipo_e_nome(rotinas_crianca, dias=dias),
+                "distribuicao_tipos_atividade": ServicoEstatisticas.distribuicao_tipos_atividade(rotinas_crianca, dias=dias),
+                "medias_emocoes": ServicoEstatisticas.medias_emocoes(rotinas_crianca, dias=dias),
+            }
+        except ValueError as erro:
+            return _erro(str(erro), 400)
+        return jsonify(resultado)
 
     return app

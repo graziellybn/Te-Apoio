@@ -306,6 +306,97 @@
               </form>
             </article>
 
+            <!-- formulário para emoções detalhadas -->
+            <article class="emocao-card">
+              <h3>Registrar emoção detalhada</h3>
+              <form method="post" action="{{ url_for('web_salvar_emocao_rotina') }}">
+                <input type="hidden" name="data" value="{{ rotina_exibicao.data_referencia }}">
+                <label>Emoção
+                  <select name="emocao" required>
+                    {% for emo in Rotina.opcoes_emocoes_detalhadas() %}
+                      <option value="{{ emo }}">{{ emo }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                <label>Escala (1–5)
+                  <input name="escala" type="number" min="1" max="5" required>
+                </label>
+                <button class="btn" type="submit">Registrar</button>
+              </form>
+              {% if rotina_exibicao.emocoes %}
+                <p>Já registradas:</p>
+                <ul>
+                  {% for emo, esc in rotina_exibicao.emocoes.items() %}
+                    <li>{{ emo }}: {{ esc }}</li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+            </article>
+
+            <!-- formulário para atividades -->
+            <article class="atividade-card">
+              <h3>Registrar atividade</h3>
+              <form method="post" action="{{ url_for('web_salvar_atividade_rotina') }}">
+                <input type="hidden" name="data" value="{{ rotina_exibicao.data_referencia }}">
+                <label>Nome
+                  <input name="nome" required>
+                </label>
+                <label>Tipo
+                  <select name="tipo" required>
+                    {% for tipo in Rotina.TIPOS_ATIVIDADE %}
+                      <option value="{{ tipo }}">{{ tipo }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                <button class="btn" type="submit">Registrar</button>
+              </form>
+              {% if rotina_exibicao.atividades %}
+                <p>Atividades já registradas:</p>
+                <ul>
+                  {% for ativ in rotina_exibicao.atividades %}
+                    <li>{{ ativ.tipo }} – {{ ativ.nome }}</li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+            </article>
+
+            {% if estatisticas %}
+              <section class="card card-wide">
+                <h3>Estatísticas dos últimos {{ estatisticas.dias }} dias</h3>
+                <div>
+                  <h4>Distribuição por tipo de atividade</h4>
+                  <ul>
+                    {% for tipo, pct in estatisticas.distribuicao_tipos_atividade.items() %}
+                      <li>{{ tipo }}: {{ "%.1f"|format(pct) }}%</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+                <div>
+                  <h4>Percentual por nome dentro de cada tipo</h4>
+                  {% for tipo, nomes in estatisticas.atividades_por_tipo_e_nome.items() %}
+                    <strong>{{ tipo }}:</strong>
+                    {% if nomes %}
+                      <ul>
+                        {% for nome, pct in nomes.items() %}
+                          <li>{{ nome }}: {{ "%.1f"|format(pct) }}%</li>
+                        {% endfor %}
+                      </ul>
+                    {% else %}
+                      <p>nenhuma atividade registrada</p>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+                <div>
+                  <h4>Médias de emoções</h4>
+                  <ul>
+                    {% for emo, avg in estatisticas.medias_emocoes.items() %}
+                      <li>{{ emo }}: {{ "%.1f"|format(avg) }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </section>
+            {% endif %}
+
             <div class="resumo-grid">
               <article class="resumo-item">
                 <small>Total de itens</small>
