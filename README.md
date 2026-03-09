@@ -177,49 +177,56 @@ Se existirem rotinas executadas no período, o relatório deve apresentar sínte
 ---
 ## 🗂 Estrutura de Pastas
 ```
+README.md
+requirements.txt
+teapoio_data.json
 teapoio/
-│
+├── __init__.py
 ├── application/
 │   └── services/
-│       ├── servico_conquistas.py
+│       ├── servico_cadastro.py
 │       ├── servico_monitoramento.py
+│       ├── servico_perfil.py
 │       ├── servico_relatorios.py
 │       └── servico_rotinas.py
-│
 ├── domain/
-│   ├── models/
-│   │   ├── conquista.py
-│   │   ├── crianca.py
-│   │   ├── evolucao.py
-│   │   ├── item_rotina.py
-│   │   ├── perfil_sensorial.py
-│   │   ├── pessoa.py
-│   │   ├── progresso_conquista.py
-│   │   ├── responsavel.py
-│   │   └── rotina.py
-│   │
-│   └── events/
-│       └── eventos.py
-│
+│   └── models/
+│       ├── calendario.py
+│       ├── crianca.py
+│       ├── evolucao.py
+│       ├── item_rotina.py
+│       ├── Perfil.py
+│       ├── perfil_sensorial.py
+│       ├── pessoa.py
+│       ├── responsavel.py
+│       └── rotina.py
 ├── infrastructure/
-│   │   └── main.py
-│   │
+│   ├── cli.py
+│   ├── flask_app.py
+│   ├── main.py
+│   ├── mixins/
+│   │   └── exportavel_json.py
 │   ├── persistence/
-│   │   └── repository.py
-│   │
-│   └── mixins/
-│       └── exportavel_json.py
-│
-├── tests/
-│   ├── test_conquista.py
-│   ├── test_eventos.py
-│   ├── test_relatorios.py
-│   └── test_rotinas.py
-│
-└── README.md
+│   │   └── Relatorio.py
+│   ├── static/
+│   │   └── style.css
+│   └── templates/
+│       └── index.html
+└── tests/
+    ├── test_calendario.py
+    ├── test_flask_api.py
+    ├── test_modelos.py
+    ├── test_persistencia.py
+    ├── test_relatorios.py
+    ├── test_rotinas.py
+    ├── test_servico_cadastro.py
+    ├── test_servico_monitoramento.py
+    ├── test_servico_perfil.py
+    └── test_servico_rotinas.py
 ```
-- **application/** → Orquestra lógica de uso, relatórios e serviços.  
-- **domain/** → Contém entidades, eventos e regras de negócio centrais.  
-- **infrastructure/** → Implementações concretas de acesso a dados.  
-- **tests/** → Testes unitários e de integração.  
-- **README.md** → Documentação principal do projeto.
+- **teapoio/application/** -> Camada de aplicação com os serviços e casos de uso.
+- **teapoio/domain/** -> Entidades e regras de negócio centrais do sistema.
+- **teapoio/infrastructure/** -> CLI, API Flask, persistência e recursos de interface.
+- **teapoio/tests/** -> Testes automatizados das regras, serviços e API.
+- **requirements.txt** -> Dependências do projeto.
+- **teapoio_data.json** -> Base de dados local em JSON utilizada pela aplicação.

@@ -186,6 +186,12 @@
       "data_referencia": "2026-03-06",
       "sentimento_dia": "dificil",
       "itens": []
+    },
+    {
+      "id_crianca": "605616",
+      "data_referencia": "2026-03-09",
+      "sentimento_dia": "",
+      "itens": []
     }
   ],
   "perfil": {
@@ -203,5 +209,5 @@
       }
     ]
   },
-  "data_calendario": "2026-03-08"
+  "data_calendario": "2026-03-09"
 }
