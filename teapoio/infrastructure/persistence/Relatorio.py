@@ -4,18 +4,23 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+# Imports de domínio
 from teapoio.domain.models.Perfil import Perfil
 from teapoio.domain.models.crianca import Crianca
 from teapoio.domain.models.item_rotina import ItemRotina
 from teapoio.domain.models.perfil_sensorial import PerfilSensorial
 from teapoio.domain.models.responsavel import Responsavel
 from teapoio.domain.models.rotina import Rotina
+
+# Mixin utilitário para JSON
 from teapoio.infrastructure.mixins.exportavel_json import ExportavelJsonMixin
 
 
+#----------------------------- SERIALIZADOR DE ESTADO -----------------------------
 class SerializadorEstadoRelatorio:
     """Converte estado da aplicacao entre objetos de dominio e dicionarios JSON."""
 
+    #------------------------ ESTADO VAZIO -------------------------------
     @staticmethod
     def estado_vazio() -> dict[str, Any]:
         return {
@@ -26,6 +31,7 @@ class SerializadorEstadoRelatorio:
             "data_calendario": date.today(),
         }
 
+    #------------------------ SERIALIZAÇÃO -------------------------------
     def serializar_estado(
         self,
         responsaveis: list[Responsavel],
@@ -34,6 +40,8 @@ class SerializadorEstadoRelatorio:
         perfil: Perfil | None,
         data_calendario: date,
     ) -> dict[str, Any]:
+        """Serializa o estado da aplicação em um formato adequado para persistência, organizando os dados de forma estruturada e garantindo 
+    compatibilidade com versões anteriores."""
         criancas_por_responsavel: dict[str, list[Crianca]] = {}
         for crianca in criancas:
             criancas_por_responsavel.setdefault(crianca.id_responsavel, []).append(crianca)
@@ -51,7 +59,11 @@ class SerializadorEstadoRelatorio:
             "data_calendario": data_calendario.isoformat(),
         }
 
+
+    #------------------------ DESSERIALIZAÇÃO ------------------------------
     def desserializar_estado(self, dados: Any) -> dict[str, Any]:
+        """Desserializa o estado da aplicação a partir de um dicionário, reconstruindo os objetos de domínio 
+        e garantindo compatibilidade com formatos antigos e novos."""
         if not isinstance(dados, dict):
             return self.estado_vazio()
 
@@ -95,8 +107,16 @@ class SerializadorEstadoRelatorio:
             ),
         }
 
+    # (Aqui entram os métodos auxiliares de serialização/desserialização de cada entidade:
+    # _serializar_responsavel, _desserializar_responsavel, _serializar_crianca, _desserializar_crianca,
+    # _serializar_perfil, _desserializar_perfil, _serializar_rotina, _desserializar_rotina, etc.)
+    # Todos já estão implementados no código original, apenas mantidos organizados em blocos.
+    
+
     @staticmethod
     def _normalizar_data_nascimento(valor: Any) -> str:
+        """Normaliza a data de nascimento para o formato "DD/MM/YYYY", aceitando múltiplos formatos de entrada 
+        e garantindo que seja uma string válida."""
         if not isinstance(valor, str):
             raise ValueError("Data de nascimento invalida para persistencia.")
 
@@ -113,11 +133,13 @@ class SerializadorEstadoRelatorio:
 
         raise ValueError("Data de nascimento fora de formato esperado.")
 
+
     def _serializar_responsavel(
         self,
         responsavel: Responsavel,
         criancas_responsavel: list[Crianca],
     ) -> dict[str, Any]:
+        """Serializa um responsável em um dicionário para persistência."""
         payload = {
             "id_responsavel": responsavel.id_responsavel,
             "nome": responsavel.nome,
@@ -135,6 +157,8 @@ class SerializadorEstadoRelatorio:
 
     @staticmethod
     def _coletar_criancas_brutas(dados: dict[str, Any]) -> list[dict[str, Any]]:
+        """Coleta as representações brutas das crianças a partir dos dados de entrada, 
+        garantindo compatibilidade com formatos antigos e novos,"""
         criancas_brutas: list[dict[str, Any]] = []
 
         # Compatibilidade com formato antigo (lista no topo)
@@ -181,6 +205,8 @@ class SerializadorEstadoRelatorio:
         return criancas_unicas
 
     def _desserializar_responsavel(self, bruto: Any) -> Responsavel | None:
+        """Desserializa um responsável a partir de um dicionário, garantindo que os dados sejam válidos 
+        e compatíveis com formatos antigos e novos."""
         if not isinstance(bruto, dict):
             return None
 
@@ -203,6 +229,8 @@ class SerializadorEstadoRelatorio:
             return None
 
     def _serializar_crianca(self, crianca: Crianca) -> dict[str, Any]:
+        """Serializa uma criança em um dicionário para persistência, garantindo que os dados 
+        estejam organizados e compatíveis com versões anteriores."""
         return {
             "id_crianca": crianca.id_crianca,
             "id_responsavel": crianca.id_responsavel,
@@ -216,6 +244,7 @@ class SerializadorEstadoRelatorio:
         bruto: Any,
         responsaveis_por_id: dict[str, Responsavel],
     ) -> Crianca | None:
+        """"Desserializa uma criança a partir de um dicionário, garantindo que os dados sejam válidos."""
         if not isinstance(bruto, dict):
             return None
 
@@ -239,6 +268,8 @@ class SerializadorEstadoRelatorio:
             return None
 
     def _serializar_perfil(self, perfil: Perfil | None) -> dict[str, Any] | None:
+        """Serializa o perfil do responsável em um dicionário para persistência, incluindo os 
+        perfis sensoriais das crianças vinculadas."""
         if perfil is None:
             return None
 
@@ -253,6 +284,8 @@ class SerializadorEstadoRelatorio:
 
     @staticmethod
     def _serializar_perfil_sensorial(perfil_sensorial: PerfilSensorial) -> dict[str, Any]:
+        """Serializa um perfil sensorial em um dicionário para persistência, garantindo que os dados 
+        estejam organizados e compatíveis com versões anteriores."""
         return {
             "id_crianca": perfil_sensorial.id_crianca,
             "nome": perfil_sensorial.nome,
@@ -271,6 +304,7 @@ class SerializadorEstadoRelatorio:
         criancas: list[Crianca],
         responsaveis_por_id: dict[str, Responsavel],
     ) -> Perfil | None:
+        """Desserializa o perfil do responsável a partir de um dicionário, reconstruindo os objetos de domínio"""
         if not responsaveis:
             return None
 
@@ -297,6 +331,8 @@ class SerializadorEstadoRelatorio:
         return perfil
 
     def _desserializar_perfil_sensorial(self, bruto: Any) -> PerfilSensorial | None:
+        """Desserializa um perfil sensorial a partir de um dicionário, garantindo que os dados sejam válidos
+          e compatíveis com formatos antigos e novos."""
         if not isinstance(bruto, dict):
             return None
 
@@ -317,6 +353,8 @@ class SerializadorEstadoRelatorio:
             return None
 
     def _serializar_rotina(self, rotina: Rotina) -> dict[str, Any]:
+        """Serializa uma rotina em um dicionário para persistência, garantindo que os dados estejam 
+        organizados e compatíveis com versões anteriores."""
         payload: dict[str, Any] = {
             "id_crianca": rotina.id_crianca,
             "data_referencia": rotina.data_referencia.isoformat(),
@@ -330,6 +368,8 @@ class SerializadorEstadoRelatorio:
 
     @staticmethod
     def _serializar_item_rotina(item: ItemRotina) -> dict[str, Any]:
+        """Serializa um item de rotina em um dicionário para persistência, garantindo que os dados estejam 
+        organizados e compatíveis com versões anteriores."""
         return {
             "nome": item.nome,
             "horario": item.horario,
@@ -339,6 +379,7 @@ class SerializadorEstadoRelatorio:
         }
 
     def _desserializar_rotina(self, bruto: Any) -> Rotina | None:
+        """Desserializa uma rotina a partir de um dicionário, garantindo que os dados sejam válidos e compatíveis"""
         if not isinstance(bruto, dict):
             return None
 
@@ -379,6 +420,8 @@ class SerializadorEstadoRelatorio:
 
     @staticmethod
     def _desserializar_item_rotina(bruto: Any) -> ItemRotina | None:
+        """Desserializa um item de rotina a partir de um dicionário, garantindo que os dados sejam válidos e
+          compatíveis com formatos antigos e novos."""
         if not isinstance(bruto, dict):
             return None
 
@@ -408,6 +451,8 @@ class SerializadorEstadoRelatorio:
 
     @staticmethod
     def _desserializar_data_referencia(valor: Any) -> date:
+        """Desserializa a data de referência a partir de uma string, aceitando múltiplos formatos e
+          garantindo que seja uma data válida."""
         if not isinstance(valor, str):
             raise ValueError("Data de referencia invalida.")
 
@@ -422,6 +467,8 @@ class SerializadorEstadoRelatorio:
 
     @staticmethod
     def _desserializar_data_calendario(valor: Any) -> date:
+        """Desserializa a data do calendário a partir de uma string, aceitando múltiplos formatos e 
+        garantindo que seja uma data válida. Se a data for inválida ou ausente, retorna a data atual."""
         if isinstance(valor, str):
             data_str = valor.strip()
             for formato in ("%Y-%m-%d", "%d/%m/%Y"):
@@ -433,19 +480,24 @@ class SerializadorEstadoRelatorio:
         return date.today()
 
 
+#----------------------------- REPOSITÓRIO DE RELATÓRIO ----------------------------
 class RepositorioRelatorio(ExportavelJsonMixin):
     """Implementacao de persistencia do estado em arquivo JSON."""
 
+#------------------------ CAMINHO PADRÃO -------------------------------
     @staticmethod
     def _caminho_arquivo_padrao() -> Path:
         # Usa sempre a raiz do projeto para evitar salvar em cwd inesperado.
         return Path(__file__).resolve().parents[3] / "teapoio_data.json"
 
+
+#------------------------------- INICIALIZAÇÃO ------------------------------------
     def __init__(
         self,
         caminho_arquivo: str | Path | None = None,
         serializador: SerializadorEstadoRelatorio | None = None,
     ) -> None:
+        """Inicializa o repositório de relatório, definindo o caminho do arquivo e o serializador a ser usado."""
         self._caminho_arquivo = (
             self._caminho_arquivo_padrao()
             if caminho_arquivo is None
@@ -453,7 +505,10 @@ class RepositorioRelatorio(ExportavelJsonMixin):
         )
         self._serializador = serializador or SerializadorEstadoRelatorio()
 
+#------------------------ MÉTODOS DE PERSISTÊNCIA -----------------------------
     def carregar_estado(self) -> dict[str, Any]:
+        """Carrega o estado da aplicação a partir do arquivo JSON, desserializando os dados e 
+        garantindo compatibilidade com formatos antigos e novos."""
         dados = self._ler_json_arquivo(caminho_arquivo=self._caminho_arquivo, fallback=None)
         estado = self._serializador.desserializar_estado(dados)
 
@@ -477,6 +532,8 @@ class RepositorioRelatorio(ExportavelJsonMixin):
         perfil: Perfil | None,
         data_calendario: date,
     ) -> None:
+        """Salva o estado da aplicação em um arquivo JSON, serializando os dados e garantindo que a escrita seja 
+        feita de forma segura e atômica para evitar corrupção de dados."""
         payload = self._serializador.serializar_estado(
             responsaveis=responsaveis,
             criancas=criancas,
