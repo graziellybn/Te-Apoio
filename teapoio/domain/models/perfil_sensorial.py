@@ -19,6 +19,8 @@ class PerfilSensorial(Pessoa):
 		seletividade_alimentar: Iterable[str] | None = None,
 		estrategias_regulacao: Iterable[str] | None = None,
 	) -> None:
+		"""Inicializa o perfil sensorial de uma criança, com validação e normalização dos dados."""
+
 		super().__init__(nome=nome, data_nascimento=data_nascimento)
 		self.id_crianca = self._validar_id_crianca(id_crianca)
 		self.hipersensibilidades = self._normalizar_lista(hipersensibilidades)
@@ -27,8 +29,10 @@ class PerfilSensorial(Pessoa):
 		self.seletividade_alimentar = self._normalizar_lista(seletividade_alimentar)
 		self.estrategias_regulacao = self._normalizar_lista(estrategias_regulacao)
 
+
 	@staticmethod
 	def _validar_id_crianca(id_crianca: str) -> str:
+		"""Valida o ID da criança, garantindo que seja uma string não vazia."""
 		if not isinstance(id_crianca, str):
 			raise ValueError("Id da criança deve ser uma string.")
 		id_limpo = id_crianca.strip()
@@ -36,8 +40,10 @@ class PerfilSensorial(Pessoa):
 			raise ValueError("Id da criança é obrigatório.")
 		return id_limpo
 
+
 	@staticmethod
 	def _normalizar_lista(valores: Iterable[str] | None) -> list[str]:
+		"""Normaliza uma lista de strings, removendo espaços e ignorando itens vazios."""
 		if valores is None:
 			return []
 		lista_normalizada: list[str] = []
@@ -50,4 +56,5 @@ class PerfilSensorial(Pessoa):
 		return lista_normalizada
 
 	def obter_status_idade(self) -> str:
+		"""Retorna uma string indicando se a criança é menor ou maior de idade."""
 		return "Maior de idade" if self.verificar_maioridade() else "Menor de idade"

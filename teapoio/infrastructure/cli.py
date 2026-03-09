@@ -4,7 +4,7 @@ from datetime import date, datetime
 import os
 from typing import List
 
-# --- SEUS IMPORTS EXISTENTES ---
+
 from teapoio.domain.models.Perfil import Perfil
 from teapoio.domain.models.crianca import Crianca
 from teapoio.domain.models.responsavel import Responsavel
@@ -15,8 +15,6 @@ from teapoio.application.services.servico_relatorios import ServicoRelatorios
 from teapoio.application.services.servico_rotinas import ServicoRotinas
 from teapoio.infrastructure.persistence.Relatorio import RepositorioRelatorio
 
-# --- NOVOS IMPORTS (Certifique-se que os arquivos estão na pasta correta) ---
-# Ajuste o caminho 'teapoio.domain.models...' conforme sua estrutura de pastas real
 from teapoio.domain.models.rotina import Rotina, obter_sugestoes_tea
 from teapoio.domain.models.calendario import CalendarioRotina
 
@@ -34,6 +32,7 @@ class TeApoioCLI:
         calendario: CalendarioRotina | None = None,
         repositorio: RepositorioRelatorio | None = None,
     ) -> None:
+        """Inicializa a interface CLI do sistema"""
         repositorio_relatorios = repositorio or RepositorioRelatorio()
         self._servico_relatorios = servico_relatorios or ServicoRelatorios(
             repositorio=repositorio_relatorios
@@ -55,6 +54,7 @@ class TeApoioCLI:
         self._responsavel_logado: Responsavel | None = None
 
     def _persistir_estado(self) -> None:
+        
         self._servico_relatorios.salvar_estado_atual(
             responsaveis=self._responsaveis,
             criancas=self._criancas,
@@ -73,6 +73,13 @@ class TeApoioCLI:
                 print(f"Aviso: nao foi possivel salvar os dados: {erro}")
 
     def executar(self) -> None:
+        """
+        Inicia o loop principal da aplicação CLI.
+
+        Exibe o menu inicial, gerencia login/cadastro e,
+        após autenticação, permite acesso às funcionalidades
+        de perfil, calendário e rotinas.
+        """
         self._limpar_tela()
         print("=== TeApoio ===")
         try:
@@ -115,6 +122,12 @@ class TeApoioCLI:
             self._persistir_estado_seguro("encerramento")
 
     def _exibir_menu(self) -> None:
+        """
+        Exibe o menu principal no terminal.
+
+        Mostra opções diferentes dependendo se há sessão autenticada
+        ou se o usuário está no menu inicial.
+        """
         print("\nMenu Principal")
         if self._sessao_autenticada():
             responsavel = self._responsavel_logado
@@ -135,6 +148,7 @@ class TeApoioCLI:
         print("3. Sair")
 
     def _sessao_autenticada(self) -> bool:
+        """Verifica se há sessão autenticada"""
         return self._responsavel_logado is not None
 
     def _obter_criancas_do_responsavel(self, id_responsavel: str) -> list[Crianca]:
@@ -166,11 +180,15 @@ class TeApoioCLI:
         self._limpar_tela()
         print("Sessao encerrada com sucesso.")
 
-    # ... [MÉTODOS DE CADASTRO MANTIDOS IGUAIS] ...
-    # (Pulei a repetição dos métodos _cadastrar_responsavel, _ler_nome_valido, etc.
-    #  Eles continuam existindo exatamente como no seu código original)
 
+   
     def _cadastrar_responsavel(self) -> None:
+        """
+        Fluxo de cadastro de um novo responsável.
+
+        Solicita nome, data de nascimento e email, validando cada etapa.
+        Cria o responsável e inicializa o perfil associado.
+        """
         self._limpar_tela()
         print("\nCadastro do responsável")
         print("Digite 0 para retornar à etapa anterior.")
@@ -240,6 +258,7 @@ class TeApoioCLI:
             f"Seu cadastro foi validado. "
             f"SEU ID: >>> {responsavel.id_responsavel} <<<"
         )
+
 
     def _ler_nome_valido(self, prompt: str) -> str | None:
         while True:
@@ -336,6 +355,12 @@ class TeApoioCLI:
         print(f"Erro: {mensagem}")
 
     def _validar_cadastro_por_id(self) -> None:
+        """
+        Valida login de responsável já cadastrado via ID.
+
+        Se o ID for encontrado, autentica a sessão e
+        vincula perfil existente ou cria um novo.
+        """
         self._limpar_tela()
         print("\nJá sou cadastrado")
         if not self._responsaveis:
@@ -365,7 +390,14 @@ class TeApoioCLI:
             if resposta == "s":
                 self._cadastrar_crianca(cadastro)
 
+
     def _cadastrar_crianca(self, responsavel: Responsavel) -> None:
+        """
+        Fluxo de cadastro de uma criança vinculada ao responsável logado.
+
+        Solicita nome, data de nascimento e nível de suporte.
+        Cria a criança e a vincula ao perfil do responsável.
+        """
         self._limpar_tela()
         print("\nCadastro da criança")
         print("Digite 0 para retornar à etapa anterior.")
@@ -418,6 +450,12 @@ class TeApoioCLI:
         )
 
     def _acessar_calendario(self) -> None:
+        """
+        Exibe o calendário da rotina.
+
+        Permite selecionar datas, voltar para hoje ou abrir
+        a rotina da data selecionada.
+        """
         while True:
             self._limpar_tela()
             data_atual = self._calendario.data_selecionada
@@ -583,6 +621,7 @@ class TeApoioCLI:
     # ------------------------------------------------------------------
 
     def _acessar_configuracoes_perfil(self) -> None:
+        """Gerencia o fluxo de visualização e edição do perfil do responsável e suas crianças."""
         while True:
             self._limpar_tela()
             self._mostrar_dados_cadastrados()
@@ -609,17 +648,20 @@ class TeApoioCLI:
                 print("Erro: opção inválida.")
 
     def _texto_opcao_perfil_sensorial(self) -> str:
+        """Retorna o texto da opção de perfil sensorial, dependendo se já existem perfis cadastrados."""
         if self._perfil and self._perfil.listar_perfis_sensoriais():
             return "Editar perfil sensorial"
         return "Adicionar perfil sensorial da criança"
 
     def _gerenciar_perfil_sensorial_crianca(self) -> None:
+        """Gerencia o fluxo de adicionar ou editar o perfil sensorial de uma criança."""
         if self._perfil and self._perfil.listar_perfis_sensoriais():
             self._editar_perfil_sensorial_crianca()
             return
         self._adicionar_perfil_sensorial_crianca()
 
     def _mostrar_dados_cadastrados(self) -> None:
+        """Exibe as informações do responsável logado e suas crianças cadastradas, incluindo detalhes do perfil sensorial."""
         if self._responsavel_logado is None:
             print("Erro: cadastro incompleto.")
             return
@@ -659,6 +701,7 @@ class TeApoioCLI:
             print(f"  • Estratégias de regulação: {', '.join(perfil_sensorial.estrategias_regulacao) or 'Não informado'}")
 
     def _adicionar_perfil_sensorial_crianca(self) -> None:
+        """Adiciona um novo perfil sensorial para uma criança."""
         if self._perfil is None:
             print("Erro: perfil do responsável não encontrado.")
             return
@@ -723,6 +766,7 @@ class TeApoioCLI:
         print("Perfil sensorial cadastrado com sucesso.")
 
     def _editar_perfil_sensorial_crianca(self) -> None:
+        """Edita o perfil sensorial de uma criança já cadastrada."""
         if self._perfil is None:
             print("Erro: perfil do responsável não encontrado.")
             return
@@ -794,6 +838,7 @@ class TeApoioCLI:
         print("Perfil sensorial atualizado com sucesso.")
 
     def _adicionar_crianca_no_perfil(self) -> None:
+        """Gerencia o fluxo de adicionar uma nova criança ao perfil do responsável logado."""
         if self._responsavel_logado is None:
             print("Erro: nenhum responsável cadastrado.")
             return
@@ -802,6 +847,7 @@ class TeApoioCLI:
         self._cadastrar_crianca(responsavel)
 
     def _editar_informacoes(self) -> None:
+        """Gerencia o fluxo de edição das informações do responsável logado ou de suas crianças."""
         print("\n1. Editar informações do usuário")
         print("2. Editar informações da criança")
         print("3. Voltar")
@@ -817,6 +863,7 @@ class TeApoioCLI:
             print("Erro: opção inválida.")
 
     def _editar_usuario(self) -> None:
+        """Permite editar as informações do responsável logado, como nome, data de nascimento e email."""
         if self._responsavel_logado is None:
             print("Erro: nenhum responsável cadastrado.")
             return
@@ -841,6 +888,7 @@ class TeApoioCLI:
         print("Informações do usuário atualizadas com sucesso.")
 
     def _editar_crianca_por_id(self) -> None:
+        """Permite editar as informações de uma criança específica, selecionada por ID, vinculada ao responsável logado."""
         if not self._obter_criancas_do_responsavel_logado():
             print("Não há crianças cadastradas.")
             return
@@ -877,6 +925,7 @@ class TeApoioCLI:
         print("Informações da criança atualizadas com sucesso.")
 
     def _excluir_crianca(self) -> None:
+        """Permite o usuário excluir uma criança já cadastrada"""
         if not self._obter_criancas_do_responsavel_logado():
             print("Erro: não há criança cadastrada para excluir.")
             return
@@ -906,6 +955,7 @@ class TeApoioCLI:
 
     @staticmethod
     def _ler_lista_texto(prompt: str) -> list[str]:
+        """Lê uma lista de itens separados por vírgula a partir da entrada do usuário."""
         texto = input(prompt).strip()
         if not texto:
             return []
@@ -913,5 +963,6 @@ class TeApoioCLI:
 
 
 def executar_cli() -> None:
+    """Ponto de entrada para executar a interface de linha de comando do TE-Apoio."""
     cli = TeApoioCLI()
     cli.executar()

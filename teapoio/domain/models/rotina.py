@@ -29,6 +29,7 @@ class ResolvedorStatusPadrao:
     }
 
     def resolver(self, status_code: int | str) -> str:
+        """Retorna um status valido de ItemRotina para o codigo informado."""
         if isinstance(status_code, str):
             codigo_limpo = status_code.strip()
             if not codigo_limpo.isdigit():
@@ -47,6 +48,7 @@ class CalculadoraEvolucaoPadrao:
     """[SOLID: OCP, DIP] Implementacao padrao de calculo de evolucao."""
 
     def calcular(self, itens: Iterable[ItemRotina]) -> Evolucao:
+        """Retorna uma Evolucao calculada para os itens informados."""
         return Evolucao.a_partir_itens(itens)
 
 
@@ -148,6 +150,7 @@ class Rotina:
 
     @staticmethod
     def _validar_id_crianca(id_crianca) -> str:
+        """Valida o ID da criança, garantindo que seja uma string numérica ou inteiro positivo."""
         if isinstance(id_crianca, int):
             if id_crianca <= 0:
                 raise ValueError("id_crianca deve ser um numero positivo.")
@@ -163,8 +166,10 @@ class Rotina:
 
         raise TypeError("id_crianca deve ser string numerica ou inteiro.")
 
+
     @staticmethod
     def _validar_data_referencia(data_referencia) -> date:
+        """Valida a data de referência, garantindo que seja uma data ou string válida, ou None para hoje."""
         if data_referencia is None:
             return date.today()
 
@@ -186,8 +191,10 @@ class Rotina:
 
         raise TypeError("data_referencia deve ser date, string valida ou None.")
 
+
     @property
     def data_formatada(self) -> str:
+        """Retorna a data de referência formatada como string no formato DD/MM/YYYY."""
         return self.data_referencia.strftime("%d/%m/%Y")
 
     @property
@@ -220,12 +227,15 @@ class Rotina:
 
     @staticmethod
     def _validar_indice(indice, total_itens: int) -> None:
+        """Valida se o indice é um inteiro dentro do intervalo de itens da rotina."""
         if not isinstance(indice, int):
             raise TypeError("Indice deve ser um numero inteiro.")
         if not 0 <= indice < total_itens:
             raise IndexError("Indice invalido.")
 
+
     def adicionar_item(self, item):
+        """Adiciona um item à rotina, validando seu tipo e horário."""
         if not isinstance(item, ItemRotina):
             raise TypeError("A rotina aceita apenas objetos do tipo ItemRotina.")
 
@@ -236,10 +246,12 @@ class Rotina:
         self.itens.sort(key=lambda item_rotina: item_rotina.horario)
 
     def remover_item(self, indice):
+        """Remove um item da rotina pelo índice."""
         self._validar_indice(indice, len(self.itens))
         self.itens.pop(indice)
 
     def editar_item(self, indice, novo_nome, novo_horario):
+        """Edita um item da rotina pelo índice."""
         self._validar_indice(indice, len(self.itens))
 
         for posicao, item in enumerate(self.itens):
@@ -249,17 +261,22 @@ class Rotina:
         self.itens[indice].atualizar(novo_nome, novo_horario)
         self.itens.sort(key=lambda item_rotina: item_rotina.horario)
 
+
     def marcar_status(self, indice, status_code):
+        """Marca o status de um item da rotina pelo índice e código de status."""
         self._validar_indice(indice, len(self.itens))
         self.itens[indice].status = self._resolvedor_status.resolver(status_code)
 
     def calcular_evolucao(self):
+        """Calcula a evolução da rotina."""
         return self.obter_evolucao().percentual_concluido
 
     def obter_evolucao(self) -> Evolucao:
+        """Obtém a evolução da rotina."""
         return self._calculadora_evolucao.calcular(self.itens)
 
     def obter_resumo_evolucao(self):
+        """Obtém um resumo da evolução da rotina."""
         return self.obter_evolucao().to_dict()
 
     def atualizar_sentimento_dia(self, sentimento: str | None) -> None:
@@ -285,6 +302,7 @@ class Rotina:
         return dict(self._emocao_escalas)
 
 def obter_sugestoes_tea():
+    """Retorna uma lista de sugestões de itens de rotina comuns."""
     return [
         {"nome": "Escovar os dentes", "cat": "Higiene"},
         {"nome": "Café da manhã", "cat": "Alimentação"},
