@@ -9,9 +9,9 @@ class ServicoCadastro:
     """[SOLID: SRP, OCP, DIP] Casos de uso de cadastro e edicao de pessoas."""
 
     @staticmethod
-    def cadastrar_responsavel(nome: str, data_nascimento: str, email: str) -> tuple[Responsavel, Perfil]:
+    def cadastrar_responsavel(nome: str, data_nascimento: str, email: str, senha: str) -> tuple[Responsavel, Perfil]:
         """Cria um novo responsável e seu perfil associado."""
-        responsavel = Responsavel(nome, data_nascimento, email)
+        responsavel = Responsavel(nome, data_nascimento, email, senha)
 
         perfil = Perfil(responsavel=responsavel)
         return responsavel, perfil

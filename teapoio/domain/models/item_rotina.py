@@ -9,9 +9,11 @@ class ItemRotina:
     STATUS_NAO_REALIZADO = "Não Realizado"
     STATUS_PERMITIDOS = {STATUS_PENDENTE, STATUS_CONCLUIDO, STATUS_NAO_REALIZADO}
     PADRAO_HORARIO = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+    LIMITE_TAG = 30
+    LIMITE_TAGS = 10
 
 
-    def __init__(self, nome: str, horario: str):
+    def __init__(self, nome: str, horario: str, observacao: str = "", tags: list[str] | None = None):
         """Inicializa um item de rotina com nome, horário e status padrão."""
 
         self.nome = nome

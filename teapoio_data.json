@@ -1,83 +1,17 @@
 {
   "responsaveis": [
     {
-      "id_responsavel": "244094",
+      "id_responsavel": "940020",
       "nome": "Pedro Kauan Cardoso Da Silva",
       "data_nascimento": "22/12/2006",
       "email": "pedrokauancardosoda@gmail.com",
       "senha": "POO123",
       "criancas": [
         {
-          "id_crianca": "605616",
-          "id_responsavel": "244094",
-          "nome": "Maria da silva",
-          "data_nascimento": "22/12/2009",
-          "nivel_suporte": 2
-        }
-      ]
-    },
-    {
-      "id_responsavel": "416471",
-      "nome": "luan da silva",
-      "data_nascimento": "22/12/2002",
-      "email": "sla@gmail.com",
-      "senha": "221206",
-      "criancas": [],
-      "aviso_crianca": "crianca nao cadastrada"
-    },
-    {
-      "id_responsavel": "178576",
-      "nome": "Pedro Kauan Cardoso Da Silva",
-      "data_nascimento": "22/12/2006",
-      "email": "lauan@gmail.com",
-      "senha": "221206",
-      "criancas": [
-        {
-          "id_crianca": "892322",
-          "id_responsavel": "178576",
-          "nome": "Maria da silva",
-          "data_nascimento": "22/12/2009",
-          "nivel_suporte": 2
-        }
-      ]
-    },
-    {
-      "id_responsavel": "470483",
-      "nome": "Maria da silva",
-      "data_nascimento": "11/11/2000",
-      "email": "maria@gmail.com",
-      "senha": "221206",
-      "criancas": [
-        {
-          "id_crianca": "754971",
-          "id_responsavel": "470483",
-          "nome": "luan da silva",
+          "id_crianca": "853733",
+          "id_responsavel": "940020",
+          "nome": "Maria cardoso",
           "data_nascimento": "22/12/2012",
-          "nivel_suporte": 2
-        }
-      ]
-    },
-    {
-      "id_responsavel": "869356",
-      "nome": "Pedro Kauan Cardoso Da Silva",
-      "data_nascimento": "22/12/2006",
-      "email": "pedrokauan@gmail.com",
-      "senha": "POO321",
-      "criancas": [],
-      "aviso_crianca": "crianca nao cadastrada"
-    },
-    {
-      "id_responsavel": "387994",
-      "nome": "Pedro Kauan Cardoso Da Silva",
-      "data_nascimento": "22/12/2006",
-      "email": "kauan123@gmail.com",
-      "senha": "POO!@#",
-      "criancas": [
-        {
-          "id_crianca": "456133",
-          "id_responsavel": "387994",
-          "nome": "Luan do nascimento",
-          "data_nascimento": "22/12/2010",
           "nivel_suporte": 2
         }
       ]
@@ -85,122 +19,52 @@
   ],
   "rotinas": [
     {
-      "id_crianca": "892322",
-      "data_referencia": "2026-03-07",
+      "id_crianca": "853733",
+      "data_referencia": "2026-03-10",
       "sentimento_dia": "",
-      "itens": [
-        {
-          "nome": "Café da manha",
-          "horario": "08:00",
-          "status": "Concluído",
-          "observacao": "",
-          "tags": []
-        },
-        {
-          "nome": "almoço",
-          "horario": "10:00",
-          "status": "Pendente",
-          "observacao": "",
-          "tags": []
-        }
-      ]
-    },
-    {
-      "id_crianca": "892322",
-      "data_referencia": "2026-03-06",
-      "sentimento_dia": "",
-      "itens": []
-    },
-    {
-      "id_crianca": "754971",
-      "data_referencia": "2026-03-07",
-      "sentimento_dia": "bem",
       "itens": [
         {
           "nome": "lanchar",
-          "horario": "09:00",
-          "status": "Não Realizado",
-          "observacao": "Não comeu verduras",
-          "tags": []
-        },
-        {
-          "nome": "dormir",
-          "horario": "22:00",
-          "status": "Pendente",
-          "observacao": "",
-          "tags": []
-        }
-      ]
-    },
-    {
-      "id_crianca": "754971",
-      "data_referencia": "2026-03-06",
-      "sentimento_dia": "",
-      "itens": []
-    },
-    {
-      "id_crianca": "754971",
-      "data_referencia": "2026-03-05",
-      "sentimento_dia": "",
-      "itens": []
-    },
-    {
-      "id_crianca": "605616",
-      "data_referencia": "2026-03-08",
-      "sentimento_dia": "",
-      "itens": [
-        {
-          "nome": "Lanche",
           "horario": "08:00",
           "status": "Concluído",
           "observacao": "Não comeu verduras",
           "tags": [
-            "alimentacao"
+            "alimentacao",
+            "lazer"
           ]
         },
         {
-          "nome": "Janta",
+          "nome": "janta",
           "horario": "19:00",
           "status": "Concluído",
           "observacao": "Comeu tudo",
           "tags": [
-            "alimentacao"
+            "alimentacao",
+            "lazer"
           ]
         }
       ]
     },
     {
-      "id_crianca": "605616",
-      "data_referencia": "2026-03-07",
-      "sentimento_dia": "cansativo",
-      "itens": []
-    },
-    {
-      "id_crianca": "456133",
-      "data_referencia": "2026-03-08",
-      "sentimento_dia": "bem",
-      "itens": []
-    },
-    {
-      "id_crianca": "605616",
-      "data_referencia": "2026-03-06",
-      "sentimento_dia": "dificil",
-      "itens": []
-    },
-    {
-      "id_crianca": "605616",
+      "id_crianca": "853733",
       "data_referencia": "2026-03-09",
+      "sentimento_dia": "",
+      "itens": []
+    },
+    {
+      "id_crianca": "853733",
+      "data_referencia": "2026-03-01",
       "sentimento_dia": "",
       "itens": []
     }
   ],
   "perfil": {
-    "id_responsavel": "244094",
+    "id_responsavel": "940020",
     "perfis_sensoriais": [
       {
-        "id_crianca": "605616",
-        "nome": "Maria da silva",
-        "data_nascimento": "22/12/2009",
+        "id_crianca": "853733",
+        "nome": "Maria cardoso",
+        "data_nascimento": "22/12/2012",
         "hipersensibilidades": [],
         "hipossensibilidades": [],
         "hiperfocos": [],
@@ -209,5 +73,5 @@
       }
     ]
   },
-  "data_calendario": "2026-03-09"
+  "data_calendario": "2026-03-01"
 }

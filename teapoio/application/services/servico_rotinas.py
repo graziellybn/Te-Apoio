@@ -89,9 +89,21 @@ class ServicoRotinas:
 		rotinas.append(rotina)
 		return rotina, True
 
-	def adicionar_item(self, rotina: Rotina, nome_item: str, horario: str) -> ItemRotina:
+	def adicionar_item(
+		self,
+		rotina: Rotina,
+		nome_item: str,
+		horario: str,
+		observacao: str = "",
+		tags: list[str] | None = None,
+	) -> ItemRotina:
 		""""Adiciona um novo item à rotina usando a fábrica de itens."""
-		item = self._fabrica_item.criar(nome=nome_item, horario=horario)
+		item = self._fabrica_item.criar(
+			nome=nome_item,
+			horario=horario,
+			observacao=observacao,
+			tags=tags,
+		)
 
 		rotina.adicionar_item(item)
 		return item

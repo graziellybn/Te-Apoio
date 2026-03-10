@@ -6,7 +6,7 @@ class Responsavel(Pessoa):
     """[SOLID: LSP] Implementacao concreta substituivel de Pessoa."""
 
 
-    def __init__(self, nome, data_nascimento, email, id_responsavel=None, uuid_func=None):
+    def __init__(self, nome, data_nascimento, email, senha, id_responsavel=None, uuid_func=None):
         """Inicializa uma instância de responsável, validando seus dados."""
    
         super().__init__(nome, data_nascimento, email)
