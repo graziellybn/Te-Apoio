@@ -312,11 +312,7 @@ def _aplicar_alertas_tempo(
         alerta_texto = ""
         alerta_tipo = ""
 
-        if delta_minutos < 0:
-            atraso = abs(delta_minutos)
-            alerta_texto = f"Atrasada ha {atraso} min"
-            alerta_tipo = "late"
-        elif delta_minutos <= 15:
+        if 0 <= delta_minutos <= 15:
             alerta_texto = f"Falta {delta_minutos} min"
             alerta_tipo = "soon"
         else:

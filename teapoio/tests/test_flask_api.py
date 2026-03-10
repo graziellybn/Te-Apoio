@@ -1,6 +1,6 @@
 from teapoio.infrastructure.flask_app import create_app
 from teapoio.domain.models.item_rotina import ItemRotina
-from datetime import date
+from datetime import date, datetime, timedelta
 
 
 def test_api_raiz_retorna_resumo(tmp_path):
@@ -1023,12 +1023,13 @@ def test_web_mostra_alerta_tempo_item_pendente(tmp_path):
     assert cadastro_crianca.status_code == 302
 
     base = date.today().isoformat()
+    horario_futuro = (datetime.now() + timedelta(minutes=10)).strftime("%H:%M")
     client.post(
         "/web/rotina/item",
         data={
             "data": base,
-            "nome": "Tarefa com horario passado",
-            "horario": "00:00",
+            "nome": "Tarefa com horario futuro",
+            "horario": horario_futuro,
         },
         follow_redirects=False,
     )
@@ -1036,7 +1037,8 @@ def test_web_mostra_alerta_tempo_item_pendente(tmp_path):
     resposta = client.get(f"/?secao=rotina&data_rotina={base}")
     texto = resposta.get_data(as_text=True)
     assert resposta.status_code == 200
-    assert ("Atrasada ha" in texto) or ("Falta" in texto)
+    assert "Falta" in texto
+    assert "Atrasada ha" not in texto
 
 
 def test_web_exporta_relatorio_pdf(tmp_path):

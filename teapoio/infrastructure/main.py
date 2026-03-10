@@ -12,4 +12,4 @@ if __name__ == "__main__":
 	debug = os.getenv("TEAPOIO_DEBUG", "1") == "1"
 	app.run(host=host, port=port, debug=debug)
 
-# python -m teapoio.infrastructure.main
+# Pra rodar:  python -m teapoio.infrastructure.main
