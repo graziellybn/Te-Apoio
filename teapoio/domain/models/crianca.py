@@ -20,6 +20,10 @@ class Crianca(Pessoa):
         """Inicializa uma instância de Criança com validação de dados e vínculo obrigatório a 
         um Responsável."""
 
+        # Validação de maioridade
+        if self.verificar_maioridade():
+            raise ValueError("Criança não pode ser maior de idade.")
+
         # Geração de ID curto (6 dígitos)
         self.id_crianca = str(id_crianca) if id_crianca else self._gerar_id_uuid(uuid_func)
 
@@ -70,11 +74,6 @@ class Crianca(Pessoa):
         fez_aniversario = (hoje.month, hoje.day) >= (self.data_nascimento.month, self.data_nascimento.day)
         return anos if fez_aniversario else anos - 1
 
-
-
     def obter_status_idade(self) -> str:
-        """Retorna uma string indicando se a criança é menor ou maior de idade."""
-        try:
-            return "Menor de idade" if not self.verificar_maioridade() else "Maior de idade"
-        except Exception:
-            return "Idade desconhecida"
+        """Retorna status de idade da criança."""
+        return "Menor de idade"

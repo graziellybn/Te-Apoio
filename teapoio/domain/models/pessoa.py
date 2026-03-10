@@ -1,6 +1,7 @@
 from datetime import datetime
 from abc import ABC, abstractmethod
 import re
+import uuid
 
 
 class Pessoa(ABC):
@@ -8,6 +9,7 @@ class Pessoa(ABC):
 
     def __init__(self, nome: str, data_nascimento: str, email: str = None):
         """Inicializa uma instância de pessoa, validando seus dados."""
+        self.id_pessoa = str(uuid.uuid4())[:6]
         self.nome = self._validar_nome(nome)
         self.data_nascimento = self._validar_data_nascimento(data_nascimento)
         self.email = self._validar_email(email) if email else None
@@ -89,3 +91,7 @@ class Pessoa(ABC):
     def obter_status_idade(self) -> str:
         """Retorna uma string indicando status de idade (menor/maior)."""
         pass
+
+    def exibir_informacoes(self) -> str:
+        """Exibe informações da pessoa."""
+        return f"Informações: {self.nome} - {self.obter_status_idade()}"

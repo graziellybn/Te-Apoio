@@ -119,7 +119,60 @@ def test_crianca_maior_de_idade():
             responsavel=r,
             nivel_suporte=1
         )
+# ============================================================
+# TESTES DA CLASSE RESPONSÁVEL - VALIDAÇÃO DE SENHAS E STATUS
 
+def test_responsavel_senha_curta():
+    """Valida se a criação falha ao passar uma senha com menos de 6 caracteres"""
+    with pytest.raises(ValueError, match="Senha deve ter pelo menos 6 caracteres."):
+        Responsavel(
+            nome="Carlos Souza",
+            data_nascimento="20/05/1985",
+            email="carlos@example.com",
+            senha="12345"  # Apenas 5 caracteres
+        )
+
+def test_responsavel_senha_nao_string():
+    """Valida se a criação falha ao passar um tipo diferente de string para a senha"""
+    with pytest.raises(ValueError, match="Senha deve ser uma string."):
+        Responsavel(
+            nome="Carlos Souza",
+            data_nascimento="20/05/1985",
+            email="carlos@example.com",
+            senha=123456  # Passando um número inteiro em vez de string
+        )
+
+def test_responsavel_confere_senha_correta_e_incorreta():
+    """Valida se a conferência de senha funciona, incluindo a limpeza de espaços (strip)"""
+    r = Responsavel(
+        nome="Ana Paula",
+        data_nascimento="10/10/1990",
+        email="ana@example.com",
+        senha="  senhaForte123  "  # A classe aplica strip() limpando os espaços
+    )
+    
+    # Deve retornar True para a senha correta
+    assert r.confere_senha("senhaForte123") is True
+    
+    # Deve retornar False para senhas erradas
+    assert r.confere_senha("senhaerrada") is False
+    
+    # Deve retornar False ao invés de quebrar se passar um tipo não-string na conferência
+    assert r.confere_senha(123456) is False 
+
+def test_responsavel_obter_status_idade():
+    """Valida se o método que retorna a string de status de idade funciona corretamente"""
+    r = Responsavel(
+        nome="Marcos Dias",
+        data_nascimento="15/08/1982",
+        email="marcos@example.com",
+        senha="senhaSegura"
+    )
+    # Como a classe já bloqueia menores no construtor, um objeto criado com sucesso
+    # sempre deve retornar "Maior de idade"
+    assert r.obter_status_idade() == "Maior de idade"
+
+    
 # TESTES DA CLASSE perfil sensorial - REGRAS DE NEGÓCIO
 def test_perfil_sensorial_herda_dados_de_pessoa_e_vincula_id():
     """Valida se o perfil sensorial herda os dados de pessoa e vincula o ID da criança corretamente"""

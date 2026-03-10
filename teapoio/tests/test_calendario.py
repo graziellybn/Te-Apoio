@@ -90,4 +90,25 @@ def test_calendario_aceita_fabrica_rotina_customizada():
     assert rotina["id"] == "123456"
     assert rotina["data"] == hoje
 
+def test_calendario_rejeita_tipos_nao_inteiros_na_data():
+    """Valida se o calendário impede a seleção usando strings ou floats"""
+    calendario = CalendarioRotina()
+    ano = date.today().year
     
+    with pytest.raises(TypeError, match="Dia, mes e ano devem ser numeros inteiros."):
+        calendario.selecionar_data("10", 5, ano)  # Passando string
+
+def test_calendario_selecionar_hoje_atualiza_corretamente():
+    """Valida se o atalho para selecionar o dia de hoje atualiza a data interna"""
+    calendario = CalendarioRotina()
+    ano = date.today().year
+    
+    # Primeiro forçamos uma data no passado (1 de Janeiro)
+    calendario.selecionar_data(1, 1, ano)
+    assert calendario.data_selecionada == date(ano, 1, 1)
+    
+    # Agora acionamos o botão/método "hoje"
+    retorno = calendario.selecionar_hoje()
+    
+    assert retorno == date.today()
+    assert calendario.data_selecionada == date.today()

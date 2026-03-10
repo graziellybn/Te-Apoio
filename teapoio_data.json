@@ -15,6 +15,15 @@
           "nivel_suporte": 2
         }
       ]
+    },
+    {
+      "id_responsavel": "583506",
+      "nome": "Ramona Vitória Clemente Cardoso",
+      "data_nascimento": "13/01/2007",
+      "email": "ramonacardoso345@gmail.com",
+      "senha": "123456",
+      "criancas": [],
+      "aviso_crianca": "crianca nao cadastrada"
     }
   ],
   "rotinas": [
@@ -59,19 +68,8 @@
     }
   ],
   "perfil": {
-    "id_responsavel": "940020",
-    "perfis_sensoriais": [
-      {
-        "id_crianca": "853733",
-        "nome": "Maria cardoso",
-        "data_nascimento": "22/12/2012",
-        "hipersensibilidades": [],
-        "hipossensibilidades": [],
-        "hiperfocos": [],
-        "seletividade_alimentar": [],
-        "estrategias_regulacao": []
-      }
-    ]
+    "id_responsavel": "583506",
+    "perfis_sensoriais": []
   },
   "data_calendario": "2026-03-01"
 }

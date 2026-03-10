@@ -60,3 +60,5 @@ def test_servico_relatorios_delega_salvamento_para_repositorio():
 
 	assert repositorio.salvamento is not None
 	assert repositorio.salvamento["data_calendario"] == date(2026, 3, 6)
+
+

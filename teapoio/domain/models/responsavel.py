@@ -48,10 +48,6 @@ class Responsavel(Pessoa):
         digitos = digitos.ljust(6, '0')
         return digitos
 
-
     def obter_status_idade(self) -> str:
-        """Retorna uma string indicando se o responsável é menor ou maior de idade."""
-        try:
-            return "Maior de idade" if self.verificar_maioridade() else "Menor de idade"
-        except Exception:
-            return "Idade desconhecida"
+        """Retorna status de idade do responsável."""
+        return "Maior de idade"

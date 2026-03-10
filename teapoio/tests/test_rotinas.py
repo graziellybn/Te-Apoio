@@ -198,3 +198,102 @@ def test_rotina_aceita_calculadora_evolucao_customizada():
 
 	assert rotina.calcular_evolucao() == 70.0
 	assert rotina.obter_resumo_evolucao()["concluidos"] == 7
+
+	# ============================================================
+# TESTES DA CLASSE ROTINA - SENTIMENTOS E EMOÇÕES DETALHADAS
+
+def test_rotina_atualizar_sentimento_dia_valido():
+    """Valida se a rotina aceita e normaliza sentimentos válidos, por texto ou escala numérica"""
+    rotina = Rotina("123456")
+    
+    rotina.atualizar_sentimento_dia("Otimo") # Letra maiúscula
+    assert rotina.sentimento_dia == "otimo"
+    assert rotina.sentimento_dia_info["escala"] == "5"
+
+    rotina.atualizar_sentimento_dia("1") # Escala numérica em string
+    assert rotina.sentimento_dia == "cansativo"
+    
+def test_rotina_rejeita_sentimento_dia_invalido():
+    """Valida se a rotina lança erro ao tentar registrar um sentimento que não existe no mapeamento"""
+    rotina = Rotina("123456")
+    with pytest.raises(ValueError, match="Sentimento invalido"):
+        rotina.atualizar_sentimento_dia("nervoso")
+
+def test_rotina_registrar_emocao_detalhada_valida():
+    """Valida se as emoções detalhadas são registradas corretamente no dicionário interno usando escala de 1 a 5"""
+    rotina = Rotina("123456")
+    rotina.registrar_emocao("Feliz", 5)
+    rotina.registrar_emocao("ansioso", 2)
+    
+    emocoes = rotina.obter_emocoes()
+    assert emocoes["feliz"] == 5
+    assert emocoes["ansioso"] == 2
+    assert len(emocoes) == 2
+
+def test_rotina_rejeita_emocao_detalhada_com_escala_invalida():
+    """Valida se a rotina lança erro ao tentar dar uma nota fora da escala 1..5 para uma emoção"""
+    rotina = Rotina("123456")
+    with pytest.raises(ValueError, match="Escala de emoção deve ser inteiro entre 1 e 5"):
+        rotina.registrar_emocao("feliz", 6)
+        
+def test_rotina_rejeita_emocao_detalhada_nao_cadastrada():
+    """Valida se a rotina lança erro ao tentar avaliar uma emoção que não está na lista EMOCOES_DETALHADAS"""
+    rotina = Rotina("123456")
+    with pytest.raises(ValueError, match="Emoção inválida"):
+        rotina.registrar_emocao("apaixonado", 5)
+
+# ============================================================
+# TESTES DA CLASSE ITEM ROTINA - OBSERVAÇÕES E TAGS
+
+def test_item_rotina_aceita_observacao_valida():
+    """Valida se o item aceita e armazena corretamente uma observação dentro do limite de caracteres"""
+    item = ItemRotina("Almoço", "12:00", observacao="Lembrar de comer vegetais")
+    assert item.observacao == "Lembrar de comer vegetais"
+
+def test_item_rotina_limpa_espacos_observacao():
+    """Valida se o item limpa os espaços em branco no início e fim da observação"""
+    item = ItemRotina("Almoço", "12:00")
+    item.atualizar_observacao("  Lembrar de comer vegetais  ")
+    assert item.observacao == "Lembrar de comer vegetais"
+
+def test_item_rotina_rejeita_observacao_muito_longa():
+    """Valida se o item rejeita observações com mais de 280 caracteres"""
+    observacao_longa = "a" * 281
+    with pytest.raises(ValueError, match="Observacao deve ter no maximo 280 caracteres."):
+        ItemRotina("Almoço", "12:00", observacao=observacao_longa)
+
+def test_item_rotina_aceita_e_limpa_tags_validas():
+    """Valida se o item aceita tags, remove o símbolo # e limpa espaços em branco"""
+    item = ItemRotina("Estudar", "14:00", tags=["#escola", "  matematica  ", "#foco"])
+    # Note que a propriedade retorna uma lista de tags limpas
+    assert item.tags == ["escola", "matematica", "foco"]
+
+def test_item_rotina_remove_tags_duplicadas_ignorando_case():
+    """Valida se o item remove tags duplicadas, mesmo se estiverem com maiúsculas/minúsculas diferentes"""
+    item = ItemRotina("Estudar", "14:00", tags=["#escola", "Escola", "ESCOLA", "foco"])
+    assert item.tags == ["escola", "foco"]
+    assert len(item.tags) == 2
+
+def test_item_rotina_rejeita_tag_muito_longa():
+    """Valida se o item rejeita tags individuais que ultrapassam o limite de 30 caracteres"""
+    tag_longa = "a" * 31
+    with pytest.raises(ValueError, match="Cada tag deve ter no maximo 30 caracteres."):
+        ItemRotina("Estudar", "14:00", tags=["escola", tag_longa])
+
+def test_item_rotina_rejeita_excesso_de_tags():
+    """Valida se o item rejeita a inserção de mais de 10 tags"""
+    tags_excessivas = [f"tag{i}" for i in range(11)] # Cria uma lista com 11 tags
+    with pytest.raises(ValueError, match="Use no maximo 10 tags por tarefa."):
+        ItemRotina("Estudar", "14:00", tags=tags_excessivas)
+
+def test_item_rotina_ignora_tags_vazias():
+    """Valida se strings vazias ou compostas apenas por espaços/hashtags são ignoradas ao setar tags"""
+    item = ItemRotina("Estudar", "14:00")
+    item.atualizar_tags(["#escola", "   ", "#", "foco"])
+    assert item.tags == ["escola", "foco"]
+
+def test_item_rotina_aceita_none_para_observacao_e_tags():
+    """Valida se passar None para observação ou tags as inicializa com os valores padrão (vazios)"""
+    item = ItemRotina("Estudar", "14:00", observacao=None, tags=None)
+    assert item.observacao == ""
+    assert item.tags == []
