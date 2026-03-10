@@ -147,7 +147,11 @@ cd Te-Apoio
 ```
 pip install -r requirements.txt
 ```
-### 3. Execute a aplicação:
+### 3. Instalar o Flask:
+```
+pip install Flask
+```
+### 4. Execute a aplicação:
 ```
 python -m teapoio.infrastructure.main
 ```

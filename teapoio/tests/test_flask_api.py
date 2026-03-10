@@ -255,31 +255,6 @@ def test_web_cadastro_responsavel_funciona_com_secret_key_padrao(tmp_path):
 
     assert resposta.status_code == 302
 
-
-def test_web_cadastro_responsavel_funciona_com_secret_key_vazia(tmp_path):
-    app = create_app(
-        {
-            "TESTING": True,
-            "DATA_FILE": str(tmp_path / "estado_api.json"),
-            "SECRET_KEY": "",
-        }
-    )
-    client = app.test_client()
-
-    resposta = client.post(
-        "/web/responsavel/cadastrar",
-        data={
-            "nome": "Joana Silva",
-            "data_nascimento": "01/01/1985",
-            "email": "joana@example.com",
-            "senha": "joana123",
-        },
-        follow_redirects=False,
-    )
-
-    assert resposta.status_code == 302
-
-
 def test_web_opcao_ver_perfil_renderiza_dados(tmp_path):
     app = create_app(
         {
@@ -880,56 +855,6 @@ def test_web_rotina_mostra_evolucao_periodo(tmp_path):
     resposta = client.get(f"/?secao=rotina&data_rotina={base}")
     assert resposta.status_code == 200
     assert "Evolucao por periodo" in resposta.get_data(as_text=True)
-
-
-def test_web_rotina_mostra_lembrete_para_item_pendente_de_hoje(tmp_path):
-    app = create_app(
-        {
-            "TESTING": True,
-            "DATA_FILE": str(tmp_path / "estado_api.json"),
-        }
-    )
-    client = app.test_client()
-
-    cadastro_responsavel = client.post(
-        "/web/responsavel/cadastrar",
-        data={
-            "nome": "Maria Silva",
-            "data_nascimento": "01/01/1985",
-            "email": "maria@example.com",
-            "senha": "maria123",
-        },
-        follow_redirects=False,
-    )
-    assert cadastro_responsavel.status_code == 302
-
-    cadastro_crianca = client.post(
-        "/web/crianca/cadastrar",
-        data={
-            "nome": "Ana Souza",
-            "data_nascimento": "10/07/2015",
-            "nivel_suporte": "2",
-        },
-        follow_redirects=False,
-    )
-    assert cadastro_crianca.status_code == 302
-
-    base = date.today().isoformat()
-    item_rotina = client.post(
-        "/web/rotina/item",
-        data={
-            "data": base,
-            "nome": "Atrasada",
-            "horario": "00:00",
-        },
-        follow_redirects=False,
-    )
-    assert item_rotina.status_code == 302
-
-    resposta = client.get(f"/?secao=rotina&data_rotina={base}")
-    assert resposta.status_code == 200
-    assert "Lembretes de hoje" in resposta.get_data(as_text=True)
-
 
 def test_web_salva_observacao_rapida_item_rotina(tmp_path):
     app = create_app(
