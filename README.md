@@ -132,6 +132,10 @@ teapoio/
     ├── test_servico_perfil.py
     └── test_servico_rotinas.py
 ```
+Diagrama contendo principais classes, relações, heranças e métodos: 
+ [Diagrama UML](https://drive.google.com/file/d/1wx3x4wdhgfhUZFCI0oaJQKLI6d8bdczM/view)
+```
+
 
 ## 🚀 Backend Flask (API)
 O projeto pode ser executado como um *backend HTTP utilizando Flask*, reutilizando as regras de negócio implementadas no domínio e os serviços da aplicação.
